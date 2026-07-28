@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import { Comment, Submission, User, handleNotifications } from './api';
+import { Comment, Rule, Submission, User, handleNotifications } from './api';
 
 export const esc = (s: string) => $('<div>').text(s).html();
 export const fmtDate = (d: string) => (d || '').replace('T', ' ').slice(0, 16);
@@ -71,6 +71,13 @@ export function scoreBadge(status: 'pending' | 'accept' | 'return', hasComments?
     if (status === 'pending') return '<span class="badge badge-pending">Pending</span>';
     if (status === 'accept') return '<span class="badge badge-score-3">✓ Accepted</span>';
     return '<span class="badge badge-score-0">✗ Returned</span>';
+}
+
+export function renderVerificationPills(verified: boolean[], rules: Rule[] = []): string {
+    return verified.map((passed, i) => {
+        const title = esc(rules[i]?.value ?? '').replace(/"/g, '&quot;');
+        return `<span class="vpill vpill-${passed ? 'pass' : 'fail'}" title="${title}">${passed ? '✓' : '✗'}</span>`;
+    }).join('');
 }
 
 function getUsernameColor(username: string): string {
