@@ -514,10 +514,12 @@ async def admin_send_review_reminder(uid: int, user=Depends(get_current_user)):
     host_url = (os.getenv("HOST_PUBLIC") or "").rstrip("/")
     name = target.get("name") or target["username"]
     ex_lines = [
-        f"- #{f['id']} {f['source_lang']} -> {f['target_lang']}: {f['source_text'][:50]}{'...' if len(f['source_text']) > 50 else ''}"
+        f"- #{f['id']} {f['source_lang']} -> {f['target_lang']}: {f['source_text'][:50].replace('\n', ' ')}{'...' if len(f['source_text']) > 50 else ''}"
         for f in feasible
-    ]
+    ][:10]
     ex_text = "\n".join(ex_lines)
+    if len(feasible) > 10:
+        ex_text += f"\n...and {len(feasible) - 10} more submissions."
     body = (
         f"Dear {name},\n\nThank you for your contributions so far! We would like to ask you to review the following examples in the Last Translation Benchmark. "
         f"As a small incentive, active and quality reviewers are prioritized in the coauthor list ranking. Review link: {host_url}/review\n\n{ex_text}\n\n"
