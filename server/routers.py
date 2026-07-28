@@ -276,6 +276,7 @@ async def admin_overview(user=Depends(get_current_user)):
         u_username = u["username"]
         if u.get("review_langs"):
             langs = set(u["review_langs"])
+            langs.add("English")
         else:
             langs = user_submissions_langs.get(u_username, set()).copy()
             langs.add("English")
@@ -495,6 +496,7 @@ async def admin_send_review_reminder(uid: int, user=Depends(get_current_user)):
     submissions_pending = [x for x in submissions if x["status"] == "pending"]
     if target.get("review_langs"):
         langs = set(target["review_langs"])
+        langs.add("English")
     else:
         langs = {"English"}
         for sub in submissions:
@@ -512,7 +514,7 @@ async def admin_send_review_reminder(uid: int, user=Depends(get_current_user)):
     host_url = (os.getenv("HOST_PUBLIC") or "").rstrip("/")
     name = target.get("name") or target["username"]
     ex_lines = [
-        f"- #{f['id']} {f['source_lang']} -> {f['target_lang']}: {f['source_text']}"
+        f"- #{f['id']} {f['source_lang']} -> {f['target_lang']}: {f['source_text'][:50]}{'...' if len(f['source_text']) > 50 else ''}"
         for f in feasible
     ]
     ex_text = "\n".join(ex_lines)

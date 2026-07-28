@@ -183,7 +183,7 @@ function renderTable(users: AdminUser[]): void {
             alert('Cannot send: user has notifications disabled');
             return;
         }
-        const lastSent = u.last_review_reminder || 'Never';
+        const lastSent = (u.last_review_reminder || 'Never').split("T")[0];
         if (!confirm(`Last reminder sent: ${lastSent}.\nSend reviewing reminder now?`)) return;
         try {
             const res = await sendAdminReviewReminder(uid);
