@@ -5,8 +5,8 @@ import json
 import os
 import secrets
 import time
-from datetime import datetime
-from typing import Literal
+from datetime import UTC, datetime
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
@@ -53,13 +53,14 @@ from .services import (
 from .utils import CONTRIBUTOR_QUOTA_DEFAULT, send_email
 
 router = APIRouter()
+CurrentUser = Annotated[dict, Depends(get_current_user)]
 REVIEW_REMINDER_SUBJECT = "Last Translation Benchmark - Review Request"
 
 # --- Users ---
 
 
 @router.get("/api/me")
-async def me(user=Depends(get_current_user)):
+async def me(user: CurrentUser):
     submissions = await db_get_submissions(user_id=user["id"])
     total_accepted = sum(1 for s in submissions if s["status"] == "accept")
     return {
@@ -80,7 +81,7 @@ async def me(user=Depends(get_current_user)):
 
 
 @router.put("/api/profile")
-async def update_profile(req: ProfileReq, user=Depends(get_current_user)):
+async def update_profile(req: ProfileReq, user: CurrentUser):
     if not req.name.strip() or not req.email.strip():
         raise HTTPException(status_code=400, detail="Name and email are required")
     new_email = req.email.strip().lower()
@@ -250,7 +251,7 @@ async def _admin_user_view(u: dict) -> dict:
 
 
 @router.get("/api/admin")
-async def admin_overview(user=Depends(get_current_user)):
+async def admin_overview(user: CurrentUser):
     require_admin(user)
     users = await get_users()
     submissions = await db_get_submissions()
@@ -343,7 +344,7 @@ async def admin_overview(user=Depends(get_current_user)):
 
     pending_languages = {}
     for sub in submissions_pending:
-        langs = set([sub["source_lang"], sub["target_lang"]])
+        langs = {sub["source_lang"], sub["target_lang"]}
         for lang in langs:
             pending_languages[lang] = pending_languages.get(lang, 0) + 1
 
@@ -361,7 +362,7 @@ async def public_dashboard():
     submissions = await db_get_submissions()
 
     total_submissions = len(submissions)
-    total_authors = len(set(s["user_id"] for s in submissions))
+    total_authors = len({s["user_id"] for s in submissions})
 
     language_counts = {}
     for s in submissions:
@@ -433,7 +434,7 @@ async def public_dashboard():
 
 
 @router.delete("/api/admin/users/{uid}", status_code=200)
-async def admin_delete_user(uid: int, user=Depends(get_current_user)):
+async def admin_delete_user(uid: int, user: CurrentUser):
     require_admin(user)
     if user["id"] == uid:
         raise HTTPException(status_code=400, detail="Cannot delete yourself")
@@ -445,7 +446,7 @@ async def admin_delete_user(uid: int, user=Depends(get_current_user)):
 
 
 @router.post("/api/admin/users/{uid}/adjust-quota")
-async def admin_adjust_quota(uid: int, req: QuotaReq, user=Depends(get_current_user)):
+async def admin_adjust_quota(uid: int, req: QuotaReq, user: CurrentUser):
     require_admin(user)
     target = await get_user_by_id(uid)
     if target is None:
@@ -456,7 +457,7 @@ async def admin_adjust_quota(uid: int, req: QuotaReq, user=Depends(get_current_u
 
 
 @router.post("/api/admin/users/{uid}/roles")
-async def admin_update_roles(uid: int, req: RolesReq, user=Depends(get_current_user)):
+async def admin_update_roles(uid: int, req: RolesReq, user: CurrentUser):
     require_admin(user)
     target = await get_user_by_id(uid)
     if target is None:
@@ -472,7 +473,7 @@ async def admin_update_roles(uid: int, req: RolesReq, user=Depends(get_current_u
 
 @router.post("/api/admin/users/{uid}/review-scope")
 async def admin_update_review_scope(
-    uid: int, req: ReviewScopeReq, user=Depends(get_current_user)
+    uid: int, req: ReviewScopeReq, user: CurrentUser
 ):
     require_admin(user)
     target = await get_user_by_id(uid)
@@ -484,7 +485,7 @@ async def admin_update_review_scope(
 
 
 @router.post("/api/admin/users/{uid}/send-review-reminder")
-async def admin_send_review_reminder(uid: int, user=Depends(get_current_user)):
+async def admin_send_review_reminder(uid: int, user: CurrentUser):
     require_admin(user)
     target = await get_user_by_id(uid)
     if target is None:
@@ -539,7 +540,7 @@ async def admin_send_review_reminder(uid: int, user=Depends(get_current_user)):
 
 
 @router.get("/api/admin/download-users")
-async def admin_download_users(user=Depends(get_current_user)):
+async def admin_download_users(user: CurrentUser):
     require_admin(user)
     users = await get_users()
     content = json.dumps(users, indent=2, ensure_ascii=False)
@@ -551,7 +552,7 @@ async def admin_download_users(user=Depends(get_current_user)):
 
 
 @router.get("/api/admin/download-submissions")
-async def admin_download_submissions(user=Depends(get_current_user)):
+async def admin_download_submissions(user: CurrentUser):
     require_admin(user)
     submissions = await db_get_submissions()
     content = json.dumps(submissions, indent=2, ensure_ascii=False)
@@ -626,7 +627,7 @@ MODEL_LIBRARY = [
 
 
 @router.post("/api/translate-submission")
-async def translate_submission(req: TranslateReq, user=Depends(get_current_user)):
+async def translate_submission(req: TranslateReq, user: CurrentUser):
     if not req.text and not req.source_media:
         raise HTTPException(
             status_code=400, detail="Enter source text or add media first"
@@ -689,7 +690,7 @@ async def translate_submission(req: TranslateReq, user=Depends(get_current_user)
                 "error": None,
                 "time": round(time.time() - time_start, 1),
             }
-        except Exception as exc:
+        except (OSError, RuntimeError, ValueError, KeyError) as exc:
             # skip unsupported models
             if str(exc).startswith("No endpoints found that support"):
                 return {"model": name, "translation": None, "error": None}
@@ -741,7 +742,7 @@ async def translate_submission(req: TranslateReq, user=Depends(get_current_user)
 
 
 @router.post("/api/verify-submission")
-async def verify_submission(req: VerifyReq, user=Depends(get_current_user)):
+async def verify_submission(req: VerifyReq, user: CurrentUser):
     quota_used = user["quota_used"]
     quota = user["quota"]
     if quota_used >= quota:
@@ -763,7 +764,7 @@ async def verify_submission(req: VerifyReq, user=Depends(get_current_user)):
                     source_text, translation, rule.value, source_media
                 )
                 results.append(res)
-            except Exception as exc:
+            except (OSError, RuntimeError, ValueError, KeyError) as exc:
                 raise HTTPException(status_code=502, detail=f"LLM API error: {exc}")
         return results
 
@@ -785,7 +786,7 @@ async def verify_submission(req: VerifyReq, user=Depends(get_current_user)):
 
 
 @router.post("/api/submissions")
-async def create_submission(req: SubmissionReq, user=Depends(get_current_user)):
+async def create_submission(req: SubmissionReq, user: CurrentUser):
     if "contributor" not in user["roles"]:
         raise HTTPException(
             status_code=403, detail="Only contributors can submit submissions"
@@ -812,13 +813,13 @@ async def create_submission(req: SubmissionReq, user=Depends(get_current_user)):
         "verification_rules": [r.dict() for r in req.verification_rules],
         "translations": [t.dict() for t in req.translations],
         "status": "pending",
-        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "created_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M"),
         "source_instructions": req.source_instructions,
         "comments": [
             {
                 "author": user["username"],
                 "text": "SUBMIT",
-                "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "created_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M"),
             }
         ],
         "reviewed_by": None,
@@ -829,7 +830,7 @@ async def create_submission(req: SubmissionReq, user=Depends(get_current_user)):
 
 @router.put("/api/submissions/{sid}")
 async def update_submission(
-    sid: int, req: SubmissionReq, user=Depends(get_current_user)
+    sid: int, req: SubmissionReq, user: CurrentUser
 ):
     submission = await get_submission_by_id(sid)
     if submission is None:
@@ -853,7 +854,7 @@ async def update_submission(
         "translations": [t.dict() for t in req.translations],
         "status": "pending",
         "reviewed_by": None,
-        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "created_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M"),
         "source_instructions": req.source_instructions,
         "source_media": req.source_media,
     }
@@ -862,7 +863,7 @@ async def update_submission(
         {
             "author": user["username"],
             "text": "SUBMIT",
-            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "created_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M"),
         }
     )
     await save_submission(submission)
@@ -870,7 +871,7 @@ async def update_submission(
 
 
 @router.delete("/api/submissions/{sid}")
-async def delete_submission_endpoint(sid: int, user=Depends(get_current_user)):
+async def delete_submission_endpoint(sid: int, user: CurrentUser):
     require_admin(user)
     submission = await get_submission_by_id(sid)
     if submission is None:
@@ -881,13 +882,15 @@ async def delete_submission_endpoint(sid: int, user=Depends(get_current_user)):
 
 @router.get("/api/submissions")
 async def list_submissions(
-    user=Depends(get_current_user),
+    user: CurrentUser,
     mode: Literal["contributor", "reviewer"] = "contributor",
     status: Literal["pending", "accepted_or_returned", "accepted", "returned", "all"] = "all",
-    source_langs: list[str] = Query(default=[]),
-    target_langs: list[str] = Query(default=[]),
+    source_langs: Annotated[list[str] | None, Query()] = None,
+    target_langs: Annotated[list[str] | None, Query()] = None,
     username: str = "",
 ):
+    source_langs = source_langs or []
+    target_langs = target_langs or []
     if mode == "reviewer" and "reviewer" in user["roles"]:
         rows = await db_get_submissions()
         review_langs = {lang.lower() for lang in user["review_langs"]}
@@ -936,7 +939,7 @@ async def list_submissions(
 
 
 @router.post("/api/submissions/{sid}/score")
-async def score_submission(sid: int, req: ScoreReq, user=Depends(get_current_user)):
+async def score_submission(sid: int, req: ScoreReq, user: CurrentUser):
     if "reviewer" not in user["roles"]:
         raise HTTPException(
             status_code=403, detail="Only reviewer users can score submissions"
@@ -970,7 +973,7 @@ async def score_submission(sid: int, req: ScoreReq, user=Depends(get_current_use
         {
             "author": user["username"],
             "text": req.action.upper(),
-            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "created_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M"),
         }
     )
 
@@ -987,7 +990,7 @@ async def score_submission(sid: int, req: ScoreReq, user=Depends(get_current_use
             )
             author["notifications"].append(
                 {
-                    "created": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    "created": datetime.now(UTC).strftime("%Y-%m-%d %H:%M"),
                     "type": "accepted" if req.action == "accept" else "returned",
                     "status": "unread",
                     "content": content,
@@ -1000,7 +1003,7 @@ async def score_submission(sid: int, req: ScoreReq, user=Depends(get_current_use
 
 
 @router.post("/api/submissions/{sid}/comment")
-async def add_comment(sid: int, req: CommentReq, user=Depends(get_current_user)):
+async def add_comment(sid: int, req: CommentReq, user: CurrentUser):
     submission = await get_submission_by_id(sid)
     if submission is None:
         raise HTTPException(status_code=404, detail="Submission not found")
@@ -1015,7 +1018,7 @@ async def add_comment(sid: int, req: CommentReq, user=Depends(get_current_user))
         {
             "author": user["username"],
             "text": req.comment,
-            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "created_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M"),
         }
     )
 
@@ -1032,7 +1035,7 @@ async def add_comment(sid: int, req: CommentReq, user=Depends(get_current_user))
             )
             author["notifications"].append(
                 {
-                    "created": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    "created": datetime.now(UTC).strftime("%Y-%m-%d %H:%M"),
                     "type": "commented",
                     "status": "unread",
                     "content": content,
@@ -1046,7 +1049,7 @@ async def add_comment(sid: int, req: CommentReq, user=Depends(get_current_user))
 
 @router.post("/api/notifications")
 async def handle_notifications(
-    req: NotificationActionReq, user=Depends(get_current_user)
+    req: NotificationActionReq, user: CurrentUser
 ):
     if req.action == "view":
         for n in user["notifications"]:

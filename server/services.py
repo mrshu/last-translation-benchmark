@@ -116,13 +116,12 @@ async def translate_lara(
     if source_code is None or target_code is None:
         return None
 
-    if source_media:
-        if source_media.startswith("data:") and "," in source_media:
-            header, base64_data = source_media.split(",", 1)
-            mime = header[5:].split(";", 1)[0]
-            if "image" not in mime:
-                return None
-            # we dont support both image an text or instructions in Lara
+    if source_media and source_media.startswith("data:") and "," in source_media:
+        header, base64_data = source_media.split(",", 1)
+        mime = header[5:].split(";", 1)[0]
+        if "image" not in mime:
+            return None
+        # we dont support both image an text or instructions in Lara
             if text or source_instructions:
                 return None
 

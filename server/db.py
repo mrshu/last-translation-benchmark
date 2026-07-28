@@ -45,10 +45,9 @@ async def get_user_by_username(username: str) -> dict | None:
 
 
 async def get_user_by_id(uid: int) -> dict | None:
-    async with _open_db() as db:
-        async with db.execute("SELECT data FROM users WHERE id = ?", (uid,)) as cur:
-            row = await cur.fetchone()
-            return json.loads(row[0]) if row else None
+    async with _open_db() as db, db.execute("SELECT data FROM users WHERE id = ?", (uid,)) as cur:
+        row = await cur.fetchone()
+        return json.loads(row[0]) if row else None
 
 
 async def save_user(user: dict) -> None:

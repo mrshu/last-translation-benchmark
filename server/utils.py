@@ -24,7 +24,7 @@ def get_config(key: str, default: Any = "") -> Any:
 
 
 def log(message: str) -> None:
-    print(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {message}", flush=True)
+    print(f"[{datetime.datetime.now(datetime.UTC).strftime('%Y-%m-%d %H:%M:%S')}] {message}", flush=True)
 
 
 def retry_async(times: int, delay: float = 1.0):
@@ -36,7 +36,7 @@ def retry_async(times: int, delay: float = 1.0):
                     return await func(*args, **kwargs)
                 except Exception as e:
                     if attempt == times - 1:
-                        raise e
+                        raise
                     log(f"Attempt {attempt + 1} failed for {func.__name__}: {e}. Retrying...")
                     await asyncio.sleep(delay)
         return wrapper
@@ -54,7 +54,7 @@ EMAIL_SMTP_SERVER_PORT = get_config("EMAIL_SMTP_SERVER_PORT", None)
 async def schedule_daily_backup() -> None:
     while True:
         try:
-            now = datetime.datetime.now()
+            now = datetime.datetime.now(datetime.UTC)
             target = now.replace(hour=8, minute=0, second=0, microsecond=0)
             if target <= now:
                 target += datetime.timedelta(days=1)
@@ -66,7 +66,7 @@ async def schedule_daily_backup() -> None:
             # Copy database file
             backup_dir = os.path.dirname(DB_PATH) + "/backups"
             os.makedirs(backup_dir, exist_ok=True)
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            timestamp = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d_%H-%M-%S")
             backup_filename = f"db_{timestamp}.sqlite"
             backup_path = backup_dir + "/" + backup_filename
             
@@ -74,7 +74,7 @@ async def schedule_daily_backup() -> None:
             log(f"Database backup created at {backup_path}")
         except asyncio.CancelledError:
             raise
-        except Exception as e:
+        except (OSError, RuntimeError, ValueError) as e:
             log(f"Error in backup schedule loop: {e}")
             await asyncio.sleep(60)
 
@@ -137,21 +137,21 @@ async def send_email(to_email: str, subject: str, body: str, headers: dict[str, 
             server.sendmail(EMAIL_SENDER, [to_email], msg.as_string())
             server.quit()
             return True
-        except Exception as e:
+        except (smtplib.SMTPException, OSError) as e:
             log(f"Failed to send email: {e}")
             return False
 
     success = await asyncio.to_thread(_send)
     if success:
         from .db import save_sent_email
-        await save_sent_email(to_email, subject, body, datetime.datetime.now().isoformat())
+        await save_sent_email(to_email, subject, body, datetime.datetime.now(datetime.UTC).isoformat())
     return success
 
 async def schedule_daily_notifications() -> None:
     from .db import get_user_by_id, get_users, save_user
     while True:
         try:
-            now = datetime.datetime.now()
+            now = datetime.datetime.now(datetime.UTC)
             target = now.replace(hour=8, minute=0, second=0, microsecond=0)
             if target <= now:
                 target += datetime.timedelta(days=1)
@@ -209,6 +209,6 @@ async def schedule_daily_notifications() -> None:
                     
         except asyncio.CancelledError:
             raise
-        except Exception as e:
+        except (OSError, RuntimeError, ValueError, KeyError) as e:
             log(f"Error in notifications schedule loop: {e}")
             await asyncio.sleep(60)
