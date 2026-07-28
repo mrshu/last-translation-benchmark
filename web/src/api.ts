@@ -273,6 +273,7 @@ export interface ReviewSuggestion {
     id: number;
     source_lang: string;
     target_lang: string;
+    source_text: string;
     username: string;
     name?: string;
 }

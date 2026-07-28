@@ -254,46 +254,32 @@ async def admin_overview(user=Depends(get_current_user)):
     for sub in submissions:
         submissions_total[sub["status"]] = submissions_total.get(sub["status"], 0) + 1
 
-    user_langs = {}
-    for sub in submissions:
-        username = sub["username"]
-        if username not in user_langs:
-            user_langs[username] = set()
-        user_langs[username].add(sub["source_lang"])
-        user_langs[username].add(sub["target_lang"])
-        
-    for u in users:
-        username = u["username"]
-        if username not in user_langs:
-            user_langs[username] = set()
-        for lang in u["review_langs"]:
-            user_langs[username].add(lang)
-        # everyone knows English (?)
-        user_langs[username].add("English") 
-
     submissions_pending = [x for x in submissions if x["status"] == "pending"]
     username_to_name = {x["username"]: x["name"] for x in users}
     
     review_suggestions_by_user = {}
     covered_submissions = set()
 
-    for u_username, langs in user_langs.items():
+    for u in users:
+        u_username = u["username"]
+        langs = set(u["review_langs"])
         feasible = [
             x for x in submissions_pending
-            if (
-                (x["source_lang"] in langs or any(lang in x["source_lang"] for lang in langs)) and
-                (x["target_lang"] in langs or any(lang in x["target_lang"] for lang in langs)) and
-                x["username"] != u_username
+            if x["username"] != u_username and (
+                not langs or (
+                    (x["source_lang"] in langs or any(lang in x["source_lang"] for lang in langs)) and
+                    (x["target_lang"] in langs or any(lang in x["target_lang"] for lang in langs))
+                )
             )
         ]
         if feasible:
-            if u_username not in review_suggestions_by_user:
-                review_suggestions_by_user[u_username] = []
+            review_suggestions_by_user[u_username] = []
             for f in feasible:
                 review_suggestions_by_user[u_username].append({
                     "id": f["id"],
                     "source_lang": f["source_lang"],
                     "target_lang": f["target_lang"],
+                    "source_text": f["source_text"][:50] + ("..." if len(f["source_text"]) > 50 else ""),
                     "username": f["username"],
                     "name": username_to_name.get(f["username"])
                 })
