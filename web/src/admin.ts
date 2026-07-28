@@ -2,7 +2,7 @@ import './assets/style.css';
 import $ from 'jquery';
 import {
     getMe, getCookie, getAdminOverview, deleteAdminUser,
-    adjustAdminQuota, updateAdminRoles, updateAdminReviewScope, renderRoleSwitcher, AdminUser, AdminOverview
+    adjustAdminQuota, updateAdminRoles, updateAdminReviewScope, sendAdminReviewReminder, renderRoleSwitcher, AdminUser, AdminOverview
 } from './api';
 
 import { esc, showToast, accessDenied, renderHeaderStatus } from './utils';
@@ -82,10 +82,6 @@ function renderTable(users: AdminUser[]): void {
             </tr>`;
         }
 
-        const exText = sugg.map(s => `- #${s.id} ${s.source_lang} -> ${s.target_lang}: ${s.source_text}`).join('\n');
-        const mailBody = `Dear ${u.name || u.username},\n\nThank you for your contributions so far! We would like to ask you to review the following examples in the Last Translation Benchmark. As a small incentive, active and quality reviewers are prioritized in the coauthor list ranking. Review link: ${root}/review\n\n${exText}\n\nPlease reach out with any questions.\nThank you, the LTB team`;
-        const mailto = `mailto:${encodeURIComponent(u.email || '')}?cc=${encodeURIComponent('last-translation-benchmark@vilda.net')}&subject=${encodeURIComponent('Last Translation Benchmark - Reviewing')}&body=${encodeURIComponent(mailBody)}`;
-
         return `<tr data-uid="${u.id}">
             <td class="uname-cell" title="${esc(u.username)}"><a href="${link}" class="uname" target="_blank">${esc(u.username)}</a></td>
             <td>${u.name ? esc(u.name) : '<span class="muted">—</span>'}</td>
@@ -98,7 +94,7 @@ function renderTable(users: AdminUser[]): void {
             <td style="text-align:right">${u.total_accepted}&nbsp;/&nbsp;${u.total_submitted}</td>
             <td>
               <div class="action-btns">
-                <a href="${mailto}" class="act-btn act-mail" title="Request review">R</a>
+                <button class="act-btn act-mail" data-uid="${u.id}" title="Send reviewing reminder">R</button>
                 <button class="act-btn act-delete" data-uid="${u.id}" title="Remove user">✕</button>
               </div>
             </td>
@@ -176,6 +172,24 @@ function renderTable(users: AdminUser[]): void {
             u.review_langs = res.review_langs;
             applyFilter();
             showToast('Language scope updated');
+        } catch (e) { alert(e); }
+    });
+
+    $('.act-mail').on('click', async function () {
+        const uid = $(this).data('uid');
+        const u = allUsers.find(u => u.id === uid);
+        if (!u) return;
+        if (!u.notification_consent) {
+            alert('Cannot send: user has notifications disabled');
+            return;
+        }
+        const lastSent = u.last_review_reminder || 'Never';
+        if (!confirm(`Last reminder sent: ${lastSent}.\nSend reviewing reminder now?`)) return;
+        try {
+            const res = await sendAdminReviewReminder(uid);
+            u.last_review_reminder = res.last_review_reminder;
+            applyFilter();
+            showToast('Review reminder sent');
         } catch (e) { alert(e); }
     });
 }

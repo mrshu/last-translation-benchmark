@@ -20,6 +20,7 @@ from .db import (
 from .db import (
     delete_submission,
     delete_user,
+    get_latest_sent_email_date,
     get_submission_by_id,
     get_user_by_id,
     get_user_by_username,
@@ -52,6 +53,7 @@ from .services import (
 from .utils import CONTRIBUTOR_QUOTA_DEFAULT, send_email
 
 router = APIRouter()
+REVIEW_REMINDER_SUBJECT = "Last Translation Benchmark - Review Request"
 
 # --- Users ---
 
@@ -226,6 +228,7 @@ async def unsubscribe(user: str, token: str):
 async def _admin_user_view(u: dict) -> dict:
     submissions = await db_get_submissions(user_id=u["id"])
     total_accepted = sum(1 for s in submissions if s["status"] == "accept")
+    last_reminder = await get_latest_sent_email_date(u["email"], REVIEW_REMINDER_SUBJECT)
     return {
         "id": u["id"],
         "username": u["username"],
@@ -235,12 +238,14 @@ async def _admin_user_view(u: dict) -> dict:
         "affiliation": u["affiliation"],
         "email": u["email"],
         "credit_consent": u["credit_consent"],
+        "notification_consent": u["notification_consent"],
         "quota": u["quota"],
         "quota_used": u["quota_used"],
         "review_langs": u["review_langs"],
         "total_accepted": total_accepted,
         "total_submitted": len(submissions),
         "last_active": u["last_active"],
+        "last_review_reminder": last_reminder,
     }
 
 
@@ -260,16 +265,26 @@ async def admin_overview(user=Depends(get_current_user)):
     review_suggestions_by_user = {}
     covered_submissions = set()
 
+    users_without_scope = {u["username"] for u in users if not u.get("review_langs")}
+    user_submissions_langs = {}
+    if users_without_scope:
+        for sub in submissions:
+            if sub["username"] in users_without_scope:
+                user_submissions_langs.setdefault(sub["username"], set()).update([sub["source_lang"], sub["target_lang"]])
+
     for u in users:
         u_username = u["username"]
-        langs = set(u["review_langs"])
+        if u.get("review_langs"):
+            langs = set(u["review_langs"])
+        else:
+            langs = user_submissions_langs.get(u_username, set()).copy()
+            langs.add("English")
+
         feasible = [
             x for x in submissions_pending
             if x["username"] != u_username and (
-                not langs or (
-                    (x["source_lang"] in langs or any(lang in x["source_lang"] for lang in langs)) and
-                    (x["target_lang"] in langs or any(lang in x["target_lang"] for lang in langs))
-                )
+                (x["source_lang"] in langs or any(lang in x["source_lang"] for lang in langs)) and
+                (x["target_lang"] in langs or any(lang in x["target_lang"] for lang in langs))
             )
         ]
         if feasible:
@@ -279,7 +294,6 @@ async def admin_overview(user=Depends(get_current_user)):
                     "id": f["id"],
                     "source_lang": f["source_lang"],
                     "target_lang": f["target_lang"],
-                    "source_text": f["source_text"][:50] + ("..." if len(f["source_text"]) > 50 else ""),
                     "username": f["username"],
                     "name": username_to_name.get(f["username"])
                 })
@@ -304,6 +318,7 @@ async def admin_overview(user=Depends(get_current_user)):
     for u in users:
         u_subs = user_submissions.get(u["id"], [])
         total_accepted = sum(1 for s in u_subs if s["status"] == "accept")
+        last_reminder = await get_latest_sent_email_date(u["email"], REVIEW_REMINDER_SUBJECT)
         view = {
             "id": u["id"],
             "username": u["username"],
@@ -313,6 +328,7 @@ async def admin_overview(user=Depends(get_current_user)):
             "affiliation": u["affiliation"],
             "email": u["email"],
             "credit_consent": u["credit_consent"],
+            "notification_consent": u["notification_consent"],
             "quota": u["quota"],
             "quota_used": u["quota_used"],
             "review_langs": u["review_langs"],
@@ -320,6 +336,7 @@ async def admin_overview(user=Depends(get_current_user)):
             "total_submitted": len(u_subs),
             "last_active": u["last_active"],
             "review_suggestions": review_suggestions_by_user.get(u["username"], []),
+            "last_review_reminder": last_reminder,
         }
         user_views.append(view)
 
@@ -462,6 +479,58 @@ async def admin_update_review_scope(
         raise HTTPException(status_code=404, detail="User not found")
     target["review_langs"] = req.review_langs
     await save_user(target)
+    return await _admin_user_view(target)
+
+
+@router.post("/api/admin/users/{uid}/send-review-reminder")
+async def admin_send_review_reminder(uid: int, user=Depends(get_current_user)):
+    require_admin(user)
+    target = await get_user_by_id(uid)
+    if target is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not target.get("notification_consent", True):
+        raise HTTPException(status_code=400, detail="User has disabled notifications")
+
+    submissions = await db_get_submissions()
+    submissions_pending = [x for x in submissions if x["status"] == "pending"]
+    if target.get("review_langs"):
+        langs = set(target["review_langs"])
+    else:
+        langs = {"English"}
+        for sub in submissions:
+            if sub["username"] == target["username"]:
+                langs.update([sub["source_lang"], sub["target_lang"]])
+
+    feasible = [
+        x for x in submissions_pending
+        if x["username"] != target["username"] and (
+            (x["source_lang"] in langs or any(lang in x["source_lang"] for lang in langs)) and
+            (x["target_lang"] in langs or any(lang in x["target_lang"] for lang in langs))
+        )
+    ]
+
+    host_url = (os.getenv("HOST_PUBLIC") or "").rstrip("/")
+    name = target.get("name") or target["username"]
+    ex_lines = [
+        f"- #{f['id']} {f['source_lang']} -> {f['target_lang']}: {f['source_text']}"
+        for f in feasible
+    ]
+    ex_text = "\n".join(ex_lines)
+    body = (
+        f"Dear {name},\n\nThank you for your contributions so far! We would like to ask you to review the following examples in the Last Translation Benchmark. "
+        f"As a small incentive, active and quality reviewers are prioritized in the coauthor list ranking. Review link: {host_url}/review\n\n{ex_text}\n\n"
+        "Please reach out with any questions.\nThank you, the LTB team"
+    )
+
+    success = await send_email(
+        to_email=target.get("email", ""),
+        subject=REVIEW_REMINDER_SUBJECT,
+        body=body,
+        user_obj=target,
+    )
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to send email")
+
     return await _admin_user_view(target)
 
 

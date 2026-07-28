@@ -1,4 +1,3 @@
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -12,8 +11,8 @@ class TranslateReq(BaseModel):
     text: str = field_source_text 
     source_lang: str = field_source_lang
     target_lang: str = field_target_lang
-    source_media: Optional[str] = field_source_media
-    source_instructions: Optional[str] = field_source_instructions
+    source_media: str | None = field_source_media
+    source_instructions: str | None = field_source_instructions
 
 class Rule(BaseModel):
     value: str = Field(max_length=500)
@@ -22,12 +21,12 @@ class VerifyReq(BaseModel):
     source_text: str = field_source_text
     translations: list[str] = Field(max_length=5000)
     verification_rules: list[Rule]
-    source_media: Optional[str] = field_source_media
+    source_media: str | None = field_source_media
 
 class TranslationEntry(BaseModel):
     model: str
     translation: str
-    verified: Optional[list[bool]] = None
+    verified: list[bool] | None = None
 
 class SubmissionReq(BaseModel):
     # Restrict to an appropriate character limit, e.g., 5000 chars
@@ -38,12 +37,12 @@ class SubmissionReq(BaseModel):
     translations: list[TranslationEntry]
     
     # source_media is base64-encoded (1500000 chars for ~1MB of binary data).
-    source_media: Optional[str] = field_source_media
-    source_instructions: Optional[str] = field_source_instructions
+    source_media: str | None = field_source_media
+    source_instructions: str | None = field_source_instructions
 
 class ScoreReq(BaseModel):
     action: str  # "return" | "accept" | "pending"
-    comment: Optional[str] = None
+    comment: str | None = None
 
 class ProfileReq(BaseModel):
     name: str = Field(max_length=50)

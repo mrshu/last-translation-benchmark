@@ -266,6 +266,8 @@ export interface AdminUser {
     total_submitted: number;
     review_langs: string[];
     last_active: string;
+    notification_consent: boolean;
+    last_review_reminder?: string | null;
     review_suggestions: ReviewSuggestion[];
 }
 
@@ -303,6 +305,10 @@ export function updateAdminRoles(uid: number, roles: string[]) {
 
 export function updateAdminReviewScope(uid: number, review_langs: string[]) {
     return apiCall<AdminUser>('POST', `api/admin/users/${uid}/review-scope`, { review_langs });
+}
+
+export function sendAdminReviewReminder(uid: number) {
+    return apiCall<AdminUser>('POST', `api/admin/users/${uid}/send-review-reminder`, {});
 }
 
 export function addComment(id: number, comment: string) {

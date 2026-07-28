@@ -1,6 +1,5 @@
 import secrets
 import urllib.parse
-from typing import Optional
 
 from fastapi import Cookie, HTTPException
 
@@ -8,7 +7,7 @@ from .db import get_user_by_username
 
 
 async def get_current_user(
-    ltb_token: Optional[str] = Cookie(None), ltb_user: Optional[str] = Cookie(None)
+    ltb_token: str | None = Cookie(None), ltb_user: str | None = Cookie(None)
 ) -> dict:
     if not ltb_token or not ltb_user:
         raise HTTPException(status_code=401, detail="Not authenticated")

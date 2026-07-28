@@ -35,9 +35,8 @@ _TABLES = {"users", "submissions"}
 
 
 async def get_users() -> list[dict]:
-    async with _open_db() as db:
-        async with db.execute("SELECT data FROM users") as cur:
-            return [json.loads(r[0]) for r in await cur.fetchall()]
+    async with _open_db() as db, db.execute("SELECT data FROM users") as cur:
+        return [json.loads(r[0]) for r in await cur.fetchall()]
 
 
 async def get_user_by_username(username: str) -> dict | None:
@@ -101,12 +100,11 @@ async def get_submissions(user_id: int | None = None) -> list[dict]:
 
 
 async def get_submission_by_id(sid: int) -> dict | None:
-    async with _open_db() as db:
-        async with db.execute(
-            "SELECT data FROM submissions WHERE id = ?", (sid,)
-        ) as cur:
-            row = await cur.fetchone()
-            return json.loads(row[0]) if row else None
+    async with _open_db() as db, db.execute(
+        "SELECT data FROM submissions WHERE id = ?", (sid,)
+    ) as cur:
+        row = await cur.fetchone()
+        return json.loads(row[0]) if row else None
 
 
 async def save_submission(submission: dict) -> None:
@@ -150,6 +148,15 @@ async def save_sent_email(to_email: str, subject: str, body: str, date: str) -> 
             (to_email, subject, body, date)
         )
         await db.commit()
+
+
+async def get_latest_sent_email_date(to_email: str, subject: str) -> str | None:
+    async with _open_db() as db, db.execute(
+        "SELECT MAX(date) FROM sent_emails WHERE to_email = ? AND subject = ?",
+        (to_email, subject),
+    ) as cursor:
+        row = await cursor.fetchone()
+        return row[0] if row and row[0] else None
 
 
 # --- Init ---
