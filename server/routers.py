@@ -3,6 +3,7 @@ import functools
 import inspect
 import json
 import os
+import random
 import secrets
 import time
 from datetime import UTC, datetime
@@ -517,7 +518,10 @@ async def admin_send_review_reminder(uid: int, user: CurrentUser):
     ex_lines = [
         f"- #{f['id']} {f['source_lang']} -> {f['target_lang']}: {f['source_text'][:50].replace('\n', ' ')}{'...' if len(f['source_text']) > 50 else ''}"
         for f in feasible
-    ][:10]
+    ]
+    ex_lines_i = random.sample(range(len(ex_lines)), min(len(ex_lines), 10))
+    ex_lines_i.sort()
+    ex_lines = [ex_lines[i] for i in ex_lines_i]
     ex_text = "\n".join(ex_lines)
     if len(feasible) > 10:
         ex_text += f"\n...and {len(feasible) - 10} more submissions."
