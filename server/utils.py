@@ -25,7 +25,7 @@ def get_config(key: str, default: Any = "") -> Any:
 
 
 def log(message: str) -> None:
-    print(f"[{time.strftime("[%Y-%m-%d %H:%M]")}] {message}", flush=True)
+    print(f"[{time.strftime("%Y-%m-%d %H:%M")}] {message}", flush=True)
 
 
 def retry_async(times: int, delay: float = 1.0):
