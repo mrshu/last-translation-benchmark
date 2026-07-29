@@ -694,7 +694,7 @@ async def translate_submission(req: TranslateReq, user: CurrentUser):
                 "error": None,
                 "time": round(time.time() - time_start, 1),
             }
-        except (OSError, RuntimeError, ValueError, KeyError) as exc:
+        except Exception as exc:  # noqa: BLE001
             # skip unsupported models
             if str(exc).startswith("No endpoints found that support"):
                 return {"model": name, "translation": None, "error": None}
@@ -741,6 +741,11 @@ async def translate_submission(req: TranslateReq, user: CurrentUser):
     results = [
         r for r in results if r["translation"] is not None or r["error"] is not None
     ]
+
+    if len([r for r in results if r["translation"] is not None]) < 3:
+        raise HTTPException(
+            status_code=500, detail="Less than 3 models produced outputs"
+        )
 
     return {"results": results, "quota": quota, "quota_used": quota_used + 1}
 
