@@ -822,13 +822,13 @@ async def create_submission(req: SubmissionReq, user: CurrentUser):
         "verification_rules": [r.dict() for r in req.verification_rules],
         "translations": [t.dict() for t in req.translations],
         "status": "pending",
-        "created_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M"),
+        "created_at": datetime.now(UTC).astimezone().strftime("%Y-%m-%d %H:%M"),
         "source_instructions": req.source_instructions,
         "comments": [
             {
                 "author": user["username"],
                 "text": "SUBMIT",
-                "created_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M"),
+                "created_at": datetime.now(UTC).astimezone().strftime("%Y-%m-%d %H:%M"),
             }
         ],
         "reviewed_by": None,
@@ -863,7 +863,7 @@ async def update_submission(
         "translations": [t.dict() for t in req.translations],
         "status": "pending",
         "reviewed_by": None,
-        "created_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M"),
+        "created_at": datetime.now(UTC).astimezone().strftime("%Y-%m-%d %H:%M"),
         "source_instructions": req.source_instructions,
         "source_media": req.source_media,
     }
@@ -872,7 +872,7 @@ async def update_submission(
         {
             "author": user["username"],
             "text": "SUBMIT",
-            "created_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M"),
+            "created_at": datetime.now(UTC).astimezone().strftime("%Y-%m-%d %H:%M"),
         }
     )
     await save_submission(submission)
@@ -982,7 +982,7 @@ async def score_submission(sid: int, req: ScoreReq, user: CurrentUser):
         {
             "author": user["username"],
             "text": req.action.upper(),
-            "created_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M"),
+            "created_at": datetime.now(UTC).astimezone().strftime("%Y-%m-%d %H:%M"),
         }
     )
 
@@ -999,7 +999,7 @@ async def score_submission(sid: int, req: ScoreReq, user: CurrentUser):
             )
             author["notifications"].append(
                 {
-                    "created": datetime.now(UTC).strftime("%Y-%m-%d %H:%M"),
+                    "created": datetime.now(UTC).astimezone().strftime("%Y-%m-%d %H:%M"),
                     "type": "accepted" if req.action == "accept" else "returned",
                     "status": "unread",
                     "content": content,
@@ -1027,7 +1027,7 @@ async def add_comment(sid: int, req: CommentReq, user: CurrentUser):
         {
             "author": user["username"],
             "text": req.comment,
-            "created_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M"),
+            "created_at": datetime.now(UTC).astimezone().strftime("%Y-%m-%d %H:%M"),
         }
     )
 
@@ -1044,7 +1044,7 @@ async def add_comment(sid: int, req: CommentReq, user: CurrentUser):
             )
             author["notifications"].append(
                 {
-                    "created": datetime.now(UTC).strftime("%Y-%m-%d %H:%M"),
+                    "created": datetime.now(UTC).astimezone().strftime("%Y-%m-%d %H:%M"),
                     "type": "commented",
                     "status": "unread",
                     "content": content,
