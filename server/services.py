@@ -176,7 +176,7 @@ async def call_llm(prompt: str, model: str = "google/gemini-2.5-flash") -> str:
 
 @retry_async(times=3)
 async def verify_llm(
-    source_text: str, translation: str, rule: str, source_media: str | None = None
+    source_text: str, translation: str, rule: str, model: str, source_media: str | None = None
 ) -> bool:
     if not source_text and source_media:
         source_text = "(attached)"
@@ -187,7 +187,7 @@ async def verify_llm(
         prompt += f"\n\nUse the provided {context_type} as additional context."
 
     text = await call_llm_multimodal(
-        prompt, model="google/gemini-2.5-pro", source_media=source_media
+        prompt, model=model, source_media=source_media
     )
     if text is None:
         raise ValueError("No response from LLM. Try simplifying your input and verification rules.")

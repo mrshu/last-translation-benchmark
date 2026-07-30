@@ -35,6 +35,7 @@ class SubmissionReq(BaseModel):
     target_lang: str = Field(max_length=50)
     verification_rules: list[Rule]
     translations: list[TranslationEntry]
+    verification_model: str
     
     # source_media is base64-encoded (1500000 chars for ~1MB of binary data).
     source_media: str | None = field_source_media

@@ -15,6 +15,7 @@ let currentUser: User | null = null;
 type ApiResult = { model: string; translation: string | null; error: string | null; verified?: boolean[] | null };
 let lastResults: ApiResult[] = [];
 let ownVerified: boolean[] | null = null;
+let verificationModel: string | null = null;
 let editingSubmissionId: number | null = null;
 let allMySubmissions: Submission[] = [];
 let lastMediaData: string | null = null;
@@ -147,6 +148,7 @@ $(async () => {
 
     $('#own-translation').on('input', () => {
         ownVerified = null;
+        verificationModel = null;
         $('#own-verify-badge').empty();
         $('#pass-count').empty();
         updateButtonStates();
@@ -177,6 +179,7 @@ $(async () => {
             renderApiResults();
             lastResults.forEach(r => r.verified = null);
             ownVerified = null;
+            verificationModel = null;
             inputCorrespondsToTranslations = true;
             $('#pass-count').text('');
             $('#verify-result').text('');
@@ -210,6 +213,7 @@ $(async () => {
         try {
             const source_text = String($('#src-text').val() ?? '').trim();
             const data = await verify(source_text, translations, rules, lastMediaData ?? undefined);
+            verificationModel = data.verification_model;
 
             currentUser!.quota_used = data.quota_used;
             currentUser!.quota = data.quota;
@@ -281,7 +285,7 @@ $(async () => {
             $('#submit-status').html('<span class="msg-err">A human translation is required</span>');
             return;
         }
-        if (ownVerified === null) {
+        if (ownVerified === null || verificationModel === null) {
             $('#submit-status').html('<span class="msg-err">Please verify translations before submitting</span>');
             return;
         }
@@ -302,10 +306,10 @@ $(async () => {
             const source_media = lastMediaData ?? undefined;
             const source_instructions = $('#src-instructions').is(':visible') ? String($('#src-instructions').val() ?? '').trim() : undefined;
             if (editingSubmissionId !== null) {
-                await updateSubmission(editingSubmissionId, { source_text, source_media, source_instructions, source_lang, target_lang, verification_rules: rules, translations });
+                await updateSubmission(editingSubmissionId, { source_text, source_media, source_instructions, source_lang, target_lang, verification_rules: rules, translations, verification_model: verificationModel });
                 $('#submit-status').html('<span class="msg-ok">✓ Updated!</span>');
             } else {
-                await createSubmission({ source_text, source_media, source_instructions, source_lang, target_lang, verification_rules: rules, translations });
+                await createSubmission({ source_text, source_media, source_instructions, source_lang, target_lang, verification_rules: rules, translations, verification_model: verificationModel });
                 $('#submit-status').html('<span class="msg-ok">✓ Submitted!</span>');
             }
             lastMediaData = null;
@@ -342,6 +346,7 @@ $(async () => {
         if (!sub) return;
 
         editingSubmissionId = id;
+        verificationModel = sub.verification_model;
         if (sub.source_media) {
             lastMediaData = sub.source_media;
             const isAudio = /^data:audio/.test(sub.source_media);
@@ -430,6 +435,7 @@ $(async () => {
         $('#verify-result, #own-verify-badge').html('');
         lastResults = [];
         ownVerified = null;
+        verificationModel = null;
         inputCorrespondsToTranslations = true;
         rules = [{ value: '' }];
         renderRules();
@@ -558,6 +564,7 @@ function renderMySug(s: Submission): string {
 
 function invalidateVerification(): void {
     ownVerified = null;
+    verificationModel = null;
     $('#own-verify-badge').empty();
     lastResults.forEach(r => r.verified = null);
     $('[data-idx]').html('');
@@ -575,7 +582,7 @@ function updateButtonStates(): void {
     $('#verify-btn').prop('disabled', !canVerify);
 
     const rulesNotEmpty = rules.length > 0 && rules.every(r => r.value.trim() !== '');
-    const humanExistsAndPasses = hasOwnTranslation && ownVerified !== null && ownVerified.every(v => v);
+    const humanExistsAndPasses = hasOwnTranslation && ownVerified !== null && verificationModel !== null && ownVerified.every(v => v);
     const mtPassCount = lastResults.filter(r => r.verified != null && r.verified.every(v => v)).length;
     const mtPassValid = mtPassCount <= 2;
 
@@ -590,7 +597,7 @@ function updateButtonStates(): void {
         if (lastResults.length === 0 || !inputCorrespondsToTranslations) reason = 'Run translations first';
         else if (!rulesNotEmpty) reason = 'All rules must have content';
         else if (!hasOwnTranslation) reason = 'Human translation is required';
-        else if (ownVerified === null) reason = 'Run verification first';
+        else if (ownVerified === null || verificationModel === null) reason = 'Run verification first';
         else if (!humanExistsAndPasses) reason = 'Human translation must pass verification';
         else if (!mtPassValid) reason = 'Only 2 MTs can pass';
         else reason = 'Run verification first';

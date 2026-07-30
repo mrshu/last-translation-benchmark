@@ -752,13 +752,14 @@ async def translate_submission(req: TranslateReq, user: CurrentUser):
 
 @router.post("/api/verify-submission")
 async def verify_submission(req: VerifyReq, user: CurrentUser):
+    VERIFICATION_MODEL = "google/gemini-3.1-pro-preview"
     quota_used = user["quota_used"]
     quota = user["quota"]
     if quota_used >= quota:
         raise HTTPException(status_code=429, detail="Quota exceeded")
 
     if not req.verification_rules:
-        return {"results": [[]] * len(req.translations)}
+        return {"results": [[]] * len(req.translations), "verification_model": VERIFICATION_MODEL}
 
     user["quota_used"] = quota_used + 1
     await save_user(user)
@@ -770,7 +771,7 @@ async def verify_submission(req: VerifyReq, user: CurrentUser):
         for rule in req.verification_rules:
             try:
                 res = await verify_llm(
-                    source_text, translation, rule.value, source_media
+                    source_text, translation, rule.value, VERIFICATION_MODEL, source_media
                 )
                 results.append(res)
             except (OSError, RuntimeError, ValueError, KeyError) as exc:
@@ -788,7 +789,7 @@ async def verify_submission(req: VerifyReq, user: CurrentUser):
     translation_to_result = dict(zip(unique_translations, unique_results))
     results = [translation_to_result[t] for t in req.translations]
 
-    return {"results": results, "quota": quota, "quota_used": quota_used + 1}
+    return {"results": results, "verification_model": VERIFICATION_MODEL, "quota": quota, "quota_used": quota_used + 1}
 
 
 # --- Submissions ---
@@ -809,6 +810,7 @@ async def create_submission(req: SubmissionReq, user: CurrentUser):
         or not (req.source_text or req.source_media)
         or not req.translations
         or not req.verification_rules
+        or not req.verification_model
     ):
         raise HTTPException(status_code=400, detail="Field missing")
 
@@ -821,6 +823,7 @@ async def create_submission(req: SubmissionReq, user: CurrentUser):
         "target_lang": req.target_lang.strip(),
         "verification_rules": [r.dict() for r in req.verification_rules],
         "translations": [t.dict() for t in req.translations],
+        "verification_model": req.verification_model,
         "status": "pending",
         "created_at": datetime.now(UTC).astimezone().strftime("%Y-%m-%d %H:%M"),
         "source_instructions": req.source_instructions,
@@ -861,6 +864,7 @@ async def update_submission(
         "target_lang": req.target_lang,
         "verification_rules": [r.dict() for r in req.verification_rules],
         "translations": [t.dict() for t in req.translations],
+        "verification_model": req.verification_model,
         "status": "pending",
         "reviewed_by": None,
         "created_at": datetime.now(UTC).astimezone().strftime("%Y-%m-%d %H:%M"),

@@ -54,6 +54,7 @@ export interface Submission {
     target_lang: string;
     verification_rules: Rule[];
     translations: TranslationEntry[];
+    verification_model: string;
     status: 'pending' | 'accept' | 'return';
     created_at: string;
     comments?: Comment[];
@@ -163,7 +164,7 @@ export function verify(
     verification_rules: Rule[],
     source_media?: string,
 ) {
-    return apiCall<{ results: boolean[][]; detail: string; quota: number; quota_used: number }>(
+    return apiCall<{ results: boolean[][]; detail: string; quota: number; quota_used: number; verification_model: string }>(
         'POST', 'api/verify-submission', { source_text, translations, verification_rules, source_media }
     );
 }
@@ -202,6 +203,7 @@ export function createSubmission(data: {
     target_lang: string;
     verification_rules: Rule[];
     translations: Array<{ model: string; translation: string; verified: boolean[] | null }>;
+    verification_model: string;
 }) {
     return apiCall<{ ok: boolean }>('POST', 'api/submissions', data);
 }
@@ -214,6 +216,7 @@ export function updateSubmission(id: number, data: {
     target_lang: string;
     verification_rules: Rule[];
     translations: Array<{ model: string; translation: string; verified: boolean[] | null }>;
+    verification_model: string;
 }) {
     return apiCall<{ ok: boolean }>('PUT', `api/submissions/${id}`, data);
 }
