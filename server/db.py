@@ -13,14 +13,14 @@ def _open_db():
     db_dir = os.path.dirname(DB_PATH)
     if db_dir:
         os.makedirs(db_dir, exist_ok=True)
-    return aiosqlite.connect(DB_PATH)
+    return aiosqlite.connect(DB_PATH, timeout=15.0)
 
 
 def _open_cache_db():
     db_dir = os.path.dirname(DB_CACHE_PATH)
     if db_dir:
         os.makedirs(db_dir, exist_ok=True)
-    return aiosqlite.connect(DB_CACHE_PATH)
+    return aiosqlite.connect(DB_CACHE_PATH, timeout=15.0)
 
 
 _TABLES = {"users", "submissions"}
@@ -163,12 +163,16 @@ async def get_latest_sent_email_date(to_email: str, subject: str) -> str | None:
 
 async def init_db() -> None:
     async with _open_cache_db() as cache_db:
+        await cache_db.execute("PRAGMA journal_mode=WAL;")
+        await cache_db.execute("PRAGMA busy_timeout=15000;")
         await cache_db.execute(
             "CREATE TABLE IF NOT EXISTS api_cache (query_hash TEXT PRIMARY KEY, response_text TEXT NOT NULL)"
         )
         await cache_db.commit()
 
     async with _open_db() as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA busy_timeout=15000;")
         await db.execute(
             "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, data TEXT NOT NULL)"
         )
