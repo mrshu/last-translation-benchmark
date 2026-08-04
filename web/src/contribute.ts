@@ -123,7 +123,7 @@ $(async () => {
 
 
     $('#add-rule-btn').on('click', () => {
-        if (rules.length >= 10) return;
+        if (rules.length >= 5) return;
         rules.push({ value: '' });
         renderRules();
         invalidateVerification();
@@ -205,6 +205,7 @@ $(async () => {
 
         if (translations.length === 0) { $('#verify-result').html('<span class="msg-err">No translations available</span>'); return; }
         if (rules.length === 0) { $('#verify-result').html('<span class="msg-err">No verification rules</span>'); return; }
+        if (rules.length > 5) { $('#verify-result').html('<span class="msg-err">At most 5 verification rules allowed</span>'); return; }
         if (rules.some(r => !r.value.trim())) { $('#verify-result').html('<span class="msg-err">All rules must have content</span>'); return; }
 
         $('#verify-btn').prop('disabled', true);
@@ -274,6 +275,10 @@ $(async () => {
 
         if (translations.length === 0 || rules.length === 0) {
             $('#submit-status').html('<span class="msg-err">Please fill all required fields, translate and verify translations first</span>');
+            return;
+        }
+        if (rules.length > 5) {
+            $('#submit-status').html('<span class="msg-err">At most 5 verification rules allowed</span>');
             return;
         }
         if (rules.some(r => !r.value.trim())) {
@@ -475,7 +480,7 @@ function renderRules() {
         $container.append($row);
     });
 
-    $('#add-rule-btn').prop('disabled', rules.length >= 10);
+    $('#add-rule-btn').prop('disabled', rules.length >= 5);
 }
 
 // ---- API results table ----

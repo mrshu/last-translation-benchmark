@@ -20,7 +20,7 @@ class Rule(BaseModel):
 class VerifyReq(BaseModel):
     source_text: str = field_source_text
     translations: list[str] = Field(max_length=5000)
-    verification_rules: list[Rule]
+    verification_rules: list[Rule] = Field(max_length=5)
     source_media: str | None = field_source_media
 
 class TranslationEntry(BaseModel):
@@ -33,7 +33,7 @@ class SubmissionReq(BaseModel):
     source_text: str = Field(max_length=5000)
     source_lang: str = Field(max_length=50)
     target_lang: str = Field(max_length=50)
-    verification_rules: list[Rule]
+    verification_rules: list[Rule] = Field(max_length=5)
     translations: list[TranslationEntry]
     verification_model: str
     
