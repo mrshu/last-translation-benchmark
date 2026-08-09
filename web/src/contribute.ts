@@ -350,7 +350,7 @@ $(async () => {
 
     $('#my-submissions').on('click', '.delete-btn', async function () {
         const id = parseInt(String($(this).data('id')));
-        if (!confirm(`Are you sure you want to delete submission #${id}?`)) return;
+        if (!confirm(`Are you sure you want to delete submission #${id}? It might be possible to edit it instead.`)) return;
         try {
             await deleteSubmission(id);
             loadMySubmissions();
@@ -565,7 +565,7 @@ function renderMySug(s: Submission): string {
         <div class="sug-mini-meta" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             <span>#${s.id} &middot; ${escHtml(s.source_lang)}&rarr;${escHtml(s.target_lang)} &middot; ${fmtDate(s.created_at)} &middot; ${scoreBadge(s.status, (s.comments?.length ?? 0) > 0)}</span>
             ${s.status === 'accept' ? '' : `<button class="score-btn edit-btn" data-id="${s.id}">Edit submission</button>`}
-            ${s.status === 'return' ? `<button class="score-btn delete-btn" style="background:#ef4444;color:#fff" data-id="${s.id}">Delete submission</button>` : ''}
+            ${s.status === 'return' ? `<button class="score-btn delete-btn" data-id="${s.id}">Delete submission</button>` : ''}
         </div>
         
         <div class="sug-box" style="margin-bottom: 8px; color: #1e293b; font-weight: 500; word-break: break-word; background: transparent; padding: 0;">
