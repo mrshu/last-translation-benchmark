@@ -34,6 +34,7 @@ from .db import (
     get_submissions as db_get_submissions,
 )
 from .models import (
+    AdminLLMReq,
     CommentReq,
     NotificationActionReq,
     ProfileReq,
@@ -47,6 +48,7 @@ from .models import (
     VerifyReq,
 )
 from .services import (
+    call_llm_multimodal,
     translate_google,
     translate_lara,
     translate_openrouter,
@@ -251,6 +253,31 @@ async def _admin_user_view(u: dict) -> dict:
         "last_review_reminder": last_reminder,
     }
 
+
+@router.post("/api/admin/llm")
+async def admin_call_llm(req: AdminLLMReq, user: CurrentUser):
+    require_admin(user)
+    
+    submissions = await db_get_submissions(user_id=user["id"])
+    if submissions:
+        raise HTTPException(
+            status_code=403, 
+            detail="Admin LLM endpoint is reserved for service accounts without submissions"
+        )
+    
+    quota = user["quota"]
+    quota_used = user["quota_used"]
+    if quota_used >= quota:
+        raise HTTPException(status_code=429, detail="Quota exceeded")
+        
+    result = await call_llm_multimodal(
+        prompt=req.prompt, model=req.model, source_media=req.source_media
+    )
+    
+    user["quota_used"] = quota_used + 0.1
+    await save_user(user)
+    
+    return result
 
 @router.get("/api/admin")
 async def admin_overview(user: CurrentUser):
