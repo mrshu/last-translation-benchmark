@@ -256,17 +256,7 @@ async def _admin_user_view(u: dict) -> dict:
 
 @router.post("/api/llm")
 async def api_call_llm(req: APILLMReq, user: CurrentUser):
-    if user["roles"]:
-        raise HTTPException(
-            status_code=403,
-            detail="Only no-role accounts can access the reviewer LLM endpoint"
-        )
-    
-    if user["review_langs"] != ["API-ONLY"]:
-        raise HTTPException(
-            status_code=403, 
-            detail="Reviewer LLM endpoint is reserved for service accounts with special review scope"
-        )
+    require_role(user, "api")
     
     quota = user["quota"]
     quota_used = user["quota_used"]
@@ -307,6 +297,8 @@ async def admin_overview(user: CurrentUser):
                 user_submissions_langs[sub["username"]].add(sub["target_lang"])
 
     for u in users:
+        if u["roles"] == ["api"]:
+            continue
         u_username = u["username"]
         langs = {"English"}
         if u.get("review_langs"):
@@ -496,7 +488,7 @@ async def admin_update_roles(uid: int, req: RolesReq, user: CurrentUser):
     target = await get_user_by_id(uid)
     if target is None:
         raise HTTPException(status_code=404, detail="User not found")
-    valid_roles = {"admin", "contributor", "reviewer"}
+    valid_roles = {"admin", "reviewer", "contributor", "api"}
     bad = [r for r in req.roles if r not in valid_roles]
     if bad:
         raise HTTPException(status_code=400, detail=f"Invalid roles: {bad}")

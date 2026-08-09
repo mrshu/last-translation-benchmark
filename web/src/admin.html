@@ -38,40 +38,7 @@
       background: #ddd;
     }
 
-    .role-tag {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-size: 0.75em;
-      font-weight: 700;
-      margin-right: 4px;
-      cursor: pointer;
-      user-select: none;
-    }
 
-    .role-tag:hover {
-      opacity: 0.8;
-    }
-
-    .role-inactive {
-      background: #f1f5f9 !important;
-      color: #94a3b8 !important;
-    }
-
-    .role-admin {
-      background: #ede9fe;
-      color: #5b21b6;
-    }
-
-    .role-reviewer {
-      background: #fef3c7;
-      color: #92400e;
-    }
-
-    .role-contributor {
-      background: #dcfce7;
-      color: #166534;
-    }
 
     .muted {
       color: #94a3b8;
@@ -180,16 +147,24 @@
     }
 
     .uname-cell {
-      width: 90px;
-      max-width: 90px;
+      width: 150px;
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .name-cell {
+      width: 150px;
+      max-width: 150px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     .scope-cell {
-      width: 75px;
-      max-width: 75px;
+      width: 120px;
+      max-width: 120px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -200,6 +175,16 @@
       font-size: 0.85em;
       cursor: pointer;
       color: #475569;
+    }
+
+    .quota-cell {
+      width: 100px;
+      max-width: 100px;
+    }
+
+    .total-cell {
+      width: 80px;
+      max-width: 80px;
     }
   </style>
 </head>
@@ -249,6 +234,7 @@
               <option value="contributor">Contributor</option>
               <option value="reviewer">Reviewer</option>
               <option value="admin">Admin</option>
+              <option value="API">API</option>
             </select>
             <input id="filter-input" type="text" placeholder="Search…" class="admin-input" style="width:150px;">
           </div>

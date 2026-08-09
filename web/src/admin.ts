@@ -54,11 +54,21 @@ function renderTable(users: AdminUser[]): void {
     let root = window.location.origin + window.location.pathname.split("/").slice(0, -1).join("/");
     const rows = users.map(u => {
         const link = root + '/?user=' + encodeURIComponent(u.username) + '&token=' + encodeURIComponent(u.magic_token);
-        const allRoles = ['admin', 'reviewer', 'contributor'];
-        const rolesHtml = allRoles.map(r => {
-            const active = u.roles.includes(r);
-            return `<span class="role-tag role-${r} ${active ? '' : 'role-inactive'}" data-role="${r}">${esc(r)}</span>`;
-        }).join('');
+        let highestRole = '';
+        if (u.roles.includes('admin')) highestRole = 'admin';
+        else if (u.roles.includes('reviewer')) highestRole = 'reviewer';
+        else if (u.roles.includes('contributor')) highestRole = 'contributor';
+        else if (u.roles.includes('api')) highestRole = 'API';
+
+        const rolesHtml = `
+            <select class="role-select admin-input" data-uid="${u.id}" style="width: 100%; padding: 2px 4px; font-size: 0.9em;">
+                <option value="" ${highestRole === '' ? 'selected' : ''}>None</option>
+                <option value="admin" ${highestRole === 'admin' ? 'selected' : ''}>admin</option>
+                <option value="reviewer" ${highestRole === 'reviewer' ? 'selected' : ''}>reviewer</option>
+                <option value="contributor" ${highestRole === 'contributor' ? 'selected' : ''}>contributor</option>
+                <option value="API" ${highestRole === 'API' ? 'selected' : ''}>API</option>
+            </select>
+        `;
 
         const sugg = u.review_suggestions || [];
         let suggHtml = sugg.length === 0 ? '<span class="muted" style="font-size: 0.8em;">none</span>' : `<span class="sugg-toggle" style="cursor:pointer;" data-uid="${u.id}">${sugg.length} possible</span>`;
@@ -84,14 +94,14 @@ function renderTable(users: AdminUser[]): void {
 
         return `<tr data-uid="${u.id}">
             <td class="uname-cell" title="${esc(u.username)}"><a href="${link}" class="uname" target="_blank">${esc(u.username)}</a></td>
-            <td>${u.name ? esc(u.name) : '<span class="muted">—</span>'}</td>
-            <td style="width:1%;white-space:nowrap">${rolesHtml}</td>
+            <td class="name-cell" title="${esc(u.name)}">${esc(u.name)}</td>
+            <td style="width:90px;white-space:nowrap">${rolesHtml}</td>
             <td class="scope-cell" data-uid="${u.id}" title="Click to edit language scope">${u.review_langs && u.review_langs.length ? esc(u.review_langs.join(',')) : '<span class="muted">all</span>'}</td>
             <td class="sugg-cell">${suggHtml}</td>
             <td class="affil-cell" title="${esc(u.affiliation)}">${u.affiliation ? esc(u.affiliation) : '<span class="muted">—</span>'}</td>
             <td class="email-cell" title="${esc(u.email)}"><a href="mailto:${esc(u.email)}">${esc(u.email)}</a></td>
-            <td style="text-align:right;white-space:nowrap">${u.quota_used}&nbsp;/&nbsp;<button class="act-btn act-quota" data-uid="${u.id}" title="Adjust quota">${u.quota}</button></td>
-            <td style="text-align:right">${u.total_accepted}&nbsp;/&nbsp;${u.total_submitted}</td>
+            <td class="quota-cell" style="text-align:right;white-space:nowrap">${u.quota_used}&nbsp;/&nbsp;<button class="act-btn act-quota" data-uid="${u.id}" title="Adjust quota">${u.quota}</button></td>
+            <td class="total-cell" style="text-align:right">${u.total_accepted}&nbsp;/&nbsp;${u.total_submitted}</td>
             <td>
               <div class="action-btns">
                 <button class="act-btn act-mail" data-uid="${u.id}" title="Send reviewing reminder">R</button>
@@ -102,7 +112,7 @@ function renderTable(users: AdminUser[]): void {
     }).join('');
 
     $('#user-table').html(`<table>
-        <thead><tr><th class="uname-cell">Username</th><th>Name</th><th style="width:1%;white-space:nowrap">Roles</th><th class="scope-cell">Reviewer<br>scope</th><th class="sugg-cell">Reviewer<br>suggestions</th><th class="affil-cell">Affiliation</th><th class="email-cell">Email</th><th style="text-align:right">Used&nbsp;/<br>Quota</th><th style="text-align:right">Accepted&nbsp;/<br>Submitted</th><th>Actions</th></tr></thead>
+        <thead><tr><th class="uname-cell">Username</th><th>Name</th><th style="width:90px;white-space:nowrap">Roles</th><th class="scope-cell">Reviewer<br>scope</th><th class="sugg-cell">Reviewer<br>suggestions</th><th class="affil-cell">Affiliation</th><th class="email-cell">Email</th><th style="text-align:right">Used&nbsp;/<br>Quota</th><th style="text-align:right">Accepted&nbsp;/<br>Submitted</th><th>Actions</th></tr></thead>
         <tbody>${rows}</tbody>
     </table>`);
 
@@ -111,25 +121,28 @@ function renderTable(users: AdminUser[]): void {
         $(`.sugg-row-${uid}`).toggle();
     });
 
-    $('.role-tag').on('click', async function () {
-        const uid = $(this).closest('tr').data('uid');
-        const role = $(this).data('role');
+    $('.role-select').on('change', async function () {
+        const uid = $(this).data('uid');
+        const role = $(this).val() as string;
         const u = allUsers.find(u => u.id === uid);
         if (!u) return;
 
-        let newRoles = [...u.roles];
-        if (newRoles.includes(role)) {
-            newRoles = newRoles.filter(r => r !== role);
-        } else {
-            newRoles.push(role);
-        }
+        let newRoles: string[] = [];
+        if (role === 'admin') newRoles = ['admin', 'reviewer', 'contributor'];
+        else if (role === 'reviewer') newRoles = ['reviewer', 'contributor'];
+        else if (role === 'contributor') newRoles = ['contributor'];
+        else if (role === 'API') newRoles = ['api'];
 
         try {
             const res = await updateAdminRoles(uid, newRoles);
             u.roles = res.roles;
             applyFilter();
             showToast('Roles updated');
-        } catch (e) { alert(e); }
+        } catch (e) {
+            alert(e);
+            // Revert UI change
+            applyFilter();
+        }
     });
 
     $('.act-delete').on('click', async function () {
