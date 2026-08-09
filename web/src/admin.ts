@@ -100,7 +100,7 @@ function renderTable(users: AdminUser[]): void {
             <td class="sugg-cell">${suggHtml}</td>
             <td class="affil-cell" title="${esc(u.affiliation)}">${u.affiliation ? esc(u.affiliation) : '<span class="muted">—</span>'}</td>
             <td class="email-cell" title="${esc(u.email)}"><a href="mailto:${esc(u.email)}">${esc(u.email)}</a></td>
-            <td class="quota-cell" style="text-align:right;white-space:nowrap">${u.quota_used}&nbsp;/&nbsp;<button class="act-btn act-quota" data-uid="${u.id}" title="Adjust quota">${u.quota}</button></td>
+            <td class="quota-cell" style="text-align:right;white-space:nowrap">${u.roles.includes('api') ? u.quota_used.toFixed(1) : u.quota_used}&nbsp;/&nbsp;<button class="act-btn act-quota" data-uid="${u.id}" title="Adjust quota">${u.quota}</button></td>
             <td class="total-cell" style="text-align:right">${u.total_accepted}&nbsp;/&nbsp;${u.total_submitted}</td>
             <td>
               <div class="action-btns">
