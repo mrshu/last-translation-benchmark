@@ -305,9 +305,9 @@ async def admin_overview(user: CurrentUser):
 
     for u in users:
         u_username = u["username"]
-        langs = {"english"}
+        langs = {"English"}
         if u.get("review_langs"):
-            langs |= set(u["review_langs"])
+            langs |= {lang for lang in u["review_langs"]}
         else:
             langs |= user_submissions_langs.get(u_username, set()).copy()
 
@@ -526,14 +526,14 @@ async def admin_send_review_reminder(uid: int, user: CurrentUser):
 
     submissions = await db_get_submissions()
     submissions_pending = [x for x in submissions if x["status"] == "pending"]
-    langs = {"english"}
+    langs = {"English"}
     if target.get("review_langs"):
-        langs |= set(target["review_langs"])
+        langs |= {lang for lang in target["review_langs"]}
     else:
         for sub in submissions:
             if sub["username"] == target["username"]:
-                langs.add(sub["source_lang"].lower())
-                langs.add(sub["target_lang"].lower())
+                langs.add(sub["source_lang"])
+                langs.add(sub["target_lang"])
 
     feasible = [
         x for x in submissions_pending
@@ -601,9 +601,9 @@ def _submission_matches_scope(submission: dict, review_langs: set[str]) -> bool:
     if not review_langs:
         return True
     langs_lower = {lang.lower() for lang in review_langs}
-    langs_lower.add("english")
-    source_lang = submission["source_lang"].lower()
-    target_lang = submission["target_lang"].lower()
+    langs_lower.add("English")
+    source_lang = submission["source_lang"]
+    target_lang = submission["target_lang"]
     return (
         any(source_lang in lang or lang in source_lang for lang in langs_lower) or
         any(target_lang in lang or lang in target_lang for lang in langs_lower)
@@ -626,16 +626,16 @@ def _filter_reviewer_submissions(
     elif status == "returned":
         rows = [s for s in rows if s["status"] == "return"]
     if source_langs:
-        s_lower = {lang.lower() for lang in source_langs}
+        s_lower = {lang for lang in source_langs}
         rows = [
             sub for sub in rows
-            if any(lang in sub["source_lang"].lower() for lang in s_lower)
+            if any(lang in sub["source_lang"] for lang in s_lower)
         ]
     if target_langs:
-        t_lower = {lang.lower() for lang in target_langs}
+        t_lower = {lang for lang in target_langs}
         rows = [
             sub for sub in rows
-            if any(lang in sub["target_lang"].lower() for lang in t_lower)
+            if any(lang in sub["target_lang"] for lang in t_lower)
         ]
     if username:
         rows = [s for s in rows if s["username"] == username]
@@ -944,7 +944,7 @@ async def list_submissions(
     target_langs = target_langs or []
     if mode == "reviewer" and "reviewer" in user["roles"]:
         rows = await db_get_submissions()
-        review_langs = {lang.lower() for lang in user["review_langs"]}
+        review_langs = {lang for lang in user["review_langs"]}
         is_admin = "admin" in user["roles"]
         
         if review_langs and not is_admin:
