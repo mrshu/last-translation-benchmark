@@ -19,6 +19,9 @@ $(async () => {
     $('#instructions-box').html(instructionsHtml);
     if (!getCookie('ltb_token')) { window.location.href = 'index.html'; return; }
 
+    curFilter = String($('#filter-status').val() || 'pending');
+    curSort = String($('#filter-sort').val() || 'last_updated');
+
     try {
         currentUser = await getMe();
         renderHeaderStatus(currentUser);
@@ -208,17 +211,9 @@ function populateFilters(): void {
     const targetLangVal = String($('#filter-target-lang').val() ?? '');
     const userVal = String($('#filter-user').val() ?? '');
 
-    const getOptions = (id: string) => {
-        return $(id).find('option').map((_, el) => $(el).attr('value')).get().filter(v => v !== '');
-    };
-
-    const existingSourceLangs = getOptions('#filter-source-lang').filter(v => v !== 'my_langs');
-    const existingTargetLangs = getOptions('#filter-target-lang').filter(v => v !== 'my_langs');
-    const existingUsers = getOptions('#filter-user');
-
-    const sourceLangs = [...new Set([...existingSourceLangs, ...allSugs.map(s => s.source_lang)])].sort();
-    const targetLangs = [...new Set([...existingTargetLangs, ...allSugs.map(s => s.target_lang)])].sort();
-    const users = [...new Set([...existingUsers, ...allSugs.map(s => s.username)])].sort();
+    const sourceLangs = [...new Set([...(sourceLangVal && sourceLangVal !== 'my_langs' ? [sourceLangVal] : []), ...allSugs.map(s => s.source_lang)])].sort();
+    const targetLangs = [...new Set([...(targetLangVal && targetLangVal !== 'my_langs' ? [targetLangVal] : []), ...allSugs.map(s => s.target_lang)])].sort();
+    const users = [...new Set([...(userVal ? [userVal] : []), ...allSugs.map(s => s.username)])].sort();
 
     let mySourceLangsOption = '';
     let myTargetLangsOption = '';
