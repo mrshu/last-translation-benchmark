@@ -1,4 +1,5 @@
 import asyncio
+import collections
 import functools
 import inspect
 import json
@@ -268,20 +269,20 @@ async def admin_overview(user: CurrentUser):
     covered_submissions = set()
 
     users_without_scope = {u["username"] for u in users if not u.get("review_langs")}
-    user_submissions_langs = {}
+    user_submissions_langs = collections.defaultdict(set)
     if users_without_scope:
         for sub in submissions:
             if sub["username"] in users_without_scope:
-                user_submissions_langs.setdefault(sub["username"], set()).update([sub["source_lang"], sub["target_lang"]])
+                user_submissions_langs[sub["username"]].add(sub["source_lang"])
+                user_submissions_langs[sub["username"]].add(sub["target_lang"])
 
     for u in users:
         u_username = u["username"]
+        langs = {"english"}
         if u.get("review_langs"):
-            langs = set(u["review_langs"])
-            langs.add("English")
+            langs |= set(u["review_langs"])
         else:
-            langs = user_submissions_langs.get(u_username, set()).copy()
-            langs.add("English")
+            langs |= user_submissions_langs.get(u_username, set()).copy()
 
         feasible = [
             x for x in submissions_pending
@@ -498,14 +499,14 @@ async def admin_send_review_reminder(uid: int, user: CurrentUser):
 
     submissions = await db_get_submissions()
     submissions_pending = [x for x in submissions if x["status"] == "pending"]
+    langs = {"english"}
     if target.get("review_langs"):
-        langs = set(target["review_langs"])
-        langs.add("English")
+        langs |= set(target["review_langs"])
     else:
-        langs = {"English"}
         for sub in submissions:
             if sub["username"] == target["username"]:
-                langs.update([sub["source_lang"], sub["target_lang"]])
+                langs.add(sub["source_lang"].lower())
+                langs.add(sub["target_lang"].lower())
 
     feasible = [
         x for x in submissions_pending
@@ -573,10 +574,12 @@ def _submission_matches_scope(submission: dict, review_langs: set[str]) -> bool:
     if not review_langs:
         return True
     langs_lower = {lang.lower() for lang in review_langs}
+    langs_lower.add("english")
     source_lang = submission["source_lang"].lower()
     target_lang = submission["target_lang"].lower()
-    return any(source_lang in lang or lang in source_lang for lang in langs_lower) or any(
-        target_lang in lang or lang in target_lang for lang in langs_lower
+    return (
+        any(source_lang in lang or lang in source_lang for lang in langs_lower) or
+        any(target_lang in lang or lang in target_lang for lang in langs_lower)
     )
 
 
