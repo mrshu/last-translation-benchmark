@@ -407,8 +407,10 @@ async def public_dashboard():
         else:
             anonymous_submissions += accepted
             anonymous_users.add(user_id)
-            if user:
-                anonymous_affiliations.add(user["affiliation"])
+            if user and user.get("affiliation", ""):
+                anonymous_affiliations.add(user["affiliation"].strip())
+            else:
+                anonymous_affiliations.add(f"empty_{user_id}")
 
     if anonymous_submissions > 0:
         rows.append(
