@@ -2,7 +2,7 @@ import './assets/style.css';
 import $ from 'jquery';
 import {
     getMe, getCookie,
-    translate, verify, createSubmission, updateSubmission, getSubmissions, addComment, renderRoleSwitcher,
+    translate, verify, createSubmission, updateSubmission, getSubmissions, addComment, renderRoleSwitcher, deleteSubmission,
     User, Submission, Rule,
 } from './api';
 
@@ -348,6 +348,17 @@ $(async () => {
         $(this).prop('disabled', false).text('Reply');
     });
 
+    $('#my-submissions').on('click', '.delete-btn', async function () {
+        const id = parseInt(String($(this).data('id')));
+        if (!confirm(`Are you sure you want to delete submission #${id}?`)) return;
+        try {
+            await deleteSubmission(id);
+            loadMySubmissions();
+        } catch (err) {
+            alert('Failed to delete: ' + err);
+        }
+    });
+
     // Edit a submission from the sidebar
     $('#my-submissions').on('click', '.edit-btn', function () {
         const id = parseInt(String($(this).data('id')));
@@ -554,6 +565,7 @@ function renderMySug(s: Submission): string {
         <div class="sug-mini-meta" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             <span>#${s.id} &middot; ${escHtml(s.source_lang)}&rarr;${escHtml(s.target_lang)} &middot; ${fmtDate(s.created_at)} &middot; ${scoreBadge(s.status, (s.comments?.length ?? 0) > 0)}</span>
             ${s.status === 'accept' ? '' : `<button class="score-btn edit-btn" data-id="${s.id}">Edit submission</button>`}
+            ${s.status === 'return' ? `<button class="score-btn delete-btn" style="background:#ef4444;color:#fff" data-id="${s.id}">Delete submission</button>` : ''}
         </div>
         
         <div class="sug-box" style="margin-bottom: 8px; color: #1e293b; font-weight: 500; word-break: break-word; background: transparent; padding: 0;">

@@ -890,10 +890,16 @@ async def update_submission(
 
 @router.delete("/api/submissions/{sid}")
 async def delete_submission_endpoint(sid: int, user: CurrentUser):
-    require_admin(user)
     submission = await get_submission_by_id(sid)
     if submission is None:
         raise HTTPException(status_code=404, detail="Submission not found")
+        
+    is_admin = "admin" in user["roles"]
+    is_own_returned = (submission["user_id"] == user["id"] and submission["status"] == "return")
+    
+    if not (is_admin or is_own_returned):
+        raise HTTPException(status_code=403, detail="Not allowed to delete this submission")
+        
     await delete_submission(sid)
     return {"ok": True}
 
