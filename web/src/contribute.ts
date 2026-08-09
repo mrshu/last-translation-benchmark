@@ -76,6 +76,7 @@ $(async () => {
             $('#add-media-btn').text('Add image/audio/video');
             inputCorrespondsToTranslations = false;
             invalidateVerification();
+            $('#tr-status').empty();
             updateButtonStates();
         } else {
             $('#src-file').trigger("click");
@@ -92,6 +93,7 @@ $(async () => {
             $('#add-context-btn').text('Add instructions/context');
             inputCorrespondsToTranslations = false;
             invalidateVerification();
+            $('#tr-status').empty();
             updateButtonStates();
         }
     });
@@ -115,6 +117,7 @@ $(async () => {
             $('#add-media-btn').text('Remove media');
             inputCorrespondsToTranslations = false;
             invalidateVerification();
+            $('#tr-status').empty();
             updateButtonStates();
         };
         reader.readAsDataURL(file);
@@ -157,6 +160,7 @@ $(async () => {
     $('#src-text, #src-instructions, #src-lang, #tgt-lang').on('input change', () => {
         inputCorrespondsToTranslations = false;
         invalidateVerification();
+        $('#tr-status').empty();
         updateButtonStates();
     });
 
