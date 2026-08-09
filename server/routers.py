@@ -601,14 +601,14 @@ def _filter_reviewer_submissions(
     if source_langs:
         s_lower = {lang.lower() for lang in source_langs}
         rows = [
-            s for s in rows 
-            if any(s["source_lang"].lower() in lang or lang in s["source_lang"].lower() for lang in s_lower)
+            sub for sub in rows
+            if any(lang in sub["source_lang"].lower() for lang in s_lower)
         ]
     if target_langs:
         t_lower = {lang.lower() for lang in target_langs}
         rows = [
-            s for s in rows 
-            if any(s["target_lang"].lower() in lang or lang in s["target_lang"].lower() for lang in t_lower)
+            sub for sub in rows
+            if any(lang in sub["target_lang"].lower() for lang in t_lower)
         ]
     if username:
         rows = [s for s in rows if s["username"] == username]
