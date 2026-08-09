@@ -121,8 +121,8 @@ $(async () => {
                 $(this).addClass('active');
             }
             $item.find('.sug-meta .badge').replaceWith(scoreBadge(status, (sug?.comments?.length ?? 0) > 0));
-        } catch { 
-            alert('Failed to save');
+        } catch (e: any) { 
+            alert(`Failed to save: ${e}`);
             if ($(this).prop('disabled')) {
                 $(this).prop('disabled', false).text(targetAction === 'return' ? 'Comment & return' : 'Comment & accept');
             }
@@ -149,7 +149,7 @@ $(async () => {
                 $(`#sug-${id} .sug-meta .badge`).replaceWith(scoreBadge(sug.status, true));
                 $(`#comment-thread-${id}`).html(renderCommentThreadWrap(sug.comments));
             }
-        } catch { alert('Failed to save'); }
+        } catch (e: any) { alert(`Failed to save: ${e}`); }
         $(this).prop('disabled', false).text('Send comment');
     });
 
