@@ -12,7 +12,7 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
-from .auth import get_current_user, require_admin
+from .auth import get_current_user, require_role
 from .db import (
     create_submission as db_create_submission,
 )
@@ -34,7 +34,7 @@ from .db import (
     get_submissions as db_get_submissions,
 )
 from .models import (
-    AdminLLMReq,
+    APILLMReq,
     CommentReq,
     NotificationActionReq,
     ProfileReq,
@@ -254,15 +254,18 @@ async def _admin_user_view(u: dict) -> dict:
     }
 
 
-@router.post("/api/admin/llm")
-async def admin_call_llm(req: AdminLLMReq, user: CurrentUser):
-    require_admin(user)
+@router.post("/api/llm")
+async def api_call_llm(req: APILLMReq, user: CurrentUser):
+    if user["roles"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Only no-role accounts can access the reviewer LLM endpoint"
+        )
     
-    submissions = await db_get_submissions(user_id=user["id"])
-    if submissions:
+    if user["review_langs"] != ["API-ONLY"]:
         raise HTTPException(
             status_code=403, 
-            detail="Admin LLM endpoint is reserved for service accounts without submissions"
+            detail="Reviewer LLM endpoint is reserved for service accounts with special review scope"
         )
     
     quota = user["quota"]
@@ -281,7 +284,7 @@ async def admin_call_llm(req: AdminLLMReq, user: CurrentUser):
 
 @router.get("/api/admin")
 async def admin_overview(user: CurrentUser):
-    require_admin(user)
+    require_role(user, "admin")
     users = await get_users()
     submissions = await db_get_submissions()
 
@@ -466,7 +469,7 @@ async def public_dashboard():
 
 @router.delete("/api/admin/users/{uid}", status_code=200)
 async def admin_delete_user(uid: int, user: CurrentUser):
-    require_admin(user)
+    require_role(user, "admin")
     if user["id"] == uid:
         raise HTTPException(status_code=400, detail="Cannot delete yourself")
     target = await get_user_by_id(uid)
@@ -478,7 +481,7 @@ async def admin_delete_user(uid: int, user: CurrentUser):
 
 @router.post("/api/admin/users/{uid}/adjust-quota")
 async def admin_adjust_quota(uid: int, req: QuotaReq, user: CurrentUser):
-    require_admin(user)
+    require_role(user, "admin")
     target = await get_user_by_id(uid)
     if target is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -489,7 +492,7 @@ async def admin_adjust_quota(uid: int, req: QuotaReq, user: CurrentUser):
 
 @router.post("/api/admin/users/{uid}/roles")
 async def admin_update_roles(uid: int, req: RolesReq, user: CurrentUser):
-    require_admin(user)
+    require_role(user, "admin")
     target = await get_user_by_id(uid)
     if target is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -506,7 +509,7 @@ async def admin_update_roles(uid: int, req: RolesReq, user: CurrentUser):
 async def admin_update_review_scope(
     uid: int, req: ReviewScopeReq, user: CurrentUser
 ):
-    require_admin(user)
+    require_role(user, "admin")
     target = await get_user_by_id(uid)
     if target is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -517,7 +520,7 @@ async def admin_update_review_scope(
 
 @router.post("/api/admin/users/{uid}/send-review-reminder")
 async def admin_send_review_reminder(uid: int, user: CurrentUser):
-    require_admin(user)
+    require_role(user, "admin")
     target = await get_user_by_id(uid)
     if target is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -575,7 +578,7 @@ async def admin_send_review_reminder(uid: int, user: CurrentUser):
 
 @router.get("/api/admin/download-users")
 async def admin_download_users(user: CurrentUser):
-    require_admin(user)
+    require_role(user, "admin")
     users = await get_users()
     content = json.dumps(users, indent=2, ensure_ascii=False)
     return Response(
@@ -587,7 +590,7 @@ async def admin_download_users(user: CurrentUser):
 
 @router.get("/api/admin/download-submissions")
 async def admin_download_submissions(user: CurrentUser):
-    require_admin(user)
+    require_role(user, "admin")
     submissions = await db_get_submissions()
     content = json.dumps(submissions, indent=2, ensure_ascii=False)
     return Response(
@@ -829,10 +832,7 @@ async def verify_submission(req: VerifyReq, user: CurrentUser):
 
 @router.post("/api/submissions")
 async def create_submission(req: SubmissionReq, user: CurrentUser):
-    if "contributor" not in user["roles"]:
-        raise HTTPException(
-            status_code=403, detail="Only contributors can submit submissions"
-        )
+    require_role(user, "contributor")
 
     if (
         not req.source_lang
@@ -991,10 +991,7 @@ async def list_submissions(
 
 @router.post("/api/submissions/{sid}/score")
 async def score_submission(sid: int, req: ScoreReq, user: CurrentUser):
-    if "reviewer" not in user["roles"]:
-        raise HTTPException(
-            status_code=403, detail="Only reviewer users can score submissions"
-        )
+    require_role(user, "reviewer")
     if req.action not in ("return", "accept", "pending"):
         raise HTTPException(
             status_code=400, detail="Action must be return, accept, or pending"

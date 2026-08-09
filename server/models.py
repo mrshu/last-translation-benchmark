@@ -70,7 +70,7 @@ class ReviewScopeReq(BaseModel):
 class NotificationActionReq(BaseModel):
     action: str  # "view" | "clear"
 
-class AdminLLMReq(BaseModel):
+class APILLMReq(BaseModel):
     model: str = Field(max_length=50)
     prompt: str = Field(max_length=50000)
     source_media: str | None = field_source_media
