@@ -1,30 +1,14 @@
-import sqlite3
 import json
-import os
-import sys
 import asyncio
 from tqdm import tqdm
+from last_translation_benchmark.services import verify_llm
+from last_translation_benchmark.db import _open_db
 
-# Add root directory to sys.path so we can import from server
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if root_dir not in sys.path:
-    sys.path.append(root_dir)
-
-from server.services import verify_llm
-
-DB_PATH = os.path.join(root_dir, "data", "db.sqlite")
-
-def get_matching_submissions():
-    if not os.path.exists(DB_PATH):
-        print("No database found at", DB_PATH)
-        return []
-
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-
+async def get_matching_submissions():
     try:
-        cursor.execute("SELECT id, data FROM submissions")
-        rows = cursor.fetchall()
+        async with _open_db() as db:
+            async with db.execute("SELECT id, data FROM submissions") as cursor:
+                rows = await cursor.fetchall()
     except Exception as e:
         print("No submissions table:", e)
         return []
@@ -53,7 +37,6 @@ def get_matching_submissions():
                 if all_uniform:
                     matching.append((row_id, data))
 
-    conn.close()
     return matching
 
 VERIFICATION_MODEL = "google/gemini-3.1-pro-preview"
@@ -103,19 +86,17 @@ async def process_submissions(submissions):
         
         # Open a brief connection with a timeout to update this row safely
         # without holding a lock during the LLM calls
-        conn = sqlite3.connect(DB_PATH, timeout=10)
-        cursor = conn.cursor()
-        cursor.execute("UPDATE submissions SET data = ? WHERE id = ?", (json.dumps(data), row_id))
-        conn.commit()
-        conn.close()
+        async with _open_db() as db:
+            await db.execute("UPDATE submissions SET data = ? WHERE id = ?", (json.dumps(data), row_id))
+            await db.commit()
 
     pbar.close()
 
-def main():
-    subs = get_matching_submissions()
+async def main():
+    subs = await get_matching_submissions()
     print(f"Found {len(subs)} submissions to re-verify.")
     if subs:
-        asyncio.run(process_submissions(subs))
+        await process_submissions(subs)
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
