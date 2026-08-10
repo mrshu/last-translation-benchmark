@@ -5,21 +5,22 @@ import requests
 from tqdm import tqdm
 import tiktoken
 import asyncio
+import random
 import os
 os.chdir(os.path.dirname(os.path.abspath(__file__))+"/..")
 
 from last_translation_benchmark.utils import get_config
 
 MODELS = [
-    {"name": "gpt-oss-20b", "model": "openai/gpt-oss-20b", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    # {"name": "gpt-oss-20b", "model": "openai/gpt-oss-20b", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "Gemma 4 a4b", "model": "google/gemma-4-26b-a4b-it", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
     # {"name": "Gemini 3.6 Flash", "model": "google/gemini-3.6-flash", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
     {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
     # {"name": "Kimi K3", "model": "moonshotai/kimi-k3", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     # {"name": "Claude Opus 4.8", "model": "anthropic/claude-opus-4.8", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Minimax M3", "model": "minimax/minimax-m3", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
-    {"name": "GLM 5.2", "model": "z-ai/glm-5.2", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Nemotron 3 Ultra", "model": "nvidia/nemotron-3-ultra-550b-a55b", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    # {"name": "Minimax M3", "model": "minimax/minimax-m3", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
+    # {"name": "GLM 5.2", "model": "z-ai/glm-5.2", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    # {"name": "Nemotron 3 Ultra", "model": "nvidia/nemotron-3-ultra-550b-a55b", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
     # {"name": "Qwen 3.7 Flash", "model": "qwen/qwen3.7-flash", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
     # {"name": "DeepSeek V4 Pro", "model": "deepseek/deepseek-v4-pro", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
 ]
@@ -35,8 +36,8 @@ def get_prompt(sub):
     text = sub["source_text"]
     src_lang = sub["source_lang"]
     tgt_lang = sub["target_lang"]
-    source_media = sub.get("source_media", None)
-    source_instructions = sub.get("source_instructions", None)
+    source_media = sub["source_media"]
+    source_instructions = sub["source_instructions"]
 
     if not source_media:
         prompt = f"Translate the following text from {src_lang} to {tgt_lang}. Output only the translation and nothing else:\n{text}"
@@ -98,12 +99,13 @@ async def main():
         if sub["status"] != "accept":
             continue
 
+        sub_changed = False
         for model in MODELS:
             # skip if this model has already provided a translation
-            if any(t["model"] == model["name"] for t in sub.get("translations", [])):
+            if any(t["model"] == model["name"] for t in sub["translations"]):
                 continue
 
-            if sub.get("source_media"):
+            if sub["source_media"]:
                 mime = sub["source_media"].split(",")[0]
                 has_audio = "audio" in mime
                 has_video = "video" in mime
@@ -120,8 +122,8 @@ async def main():
                 "model": model["model"],
                 "prompt": prompt,
             }
-            if sub.get("source_media", None):
-                payload["source_media"] = sub.get("source_media", None)
+            if sub["source_media"]:
+                payload["source_media"] = sub["source_media"]
 
             pbar.set_description(f"Translating #{sub['id']} with {model['model']}")
             try:
@@ -137,15 +139,17 @@ async def main():
                         sub["translations"] = []
                     # Just add it to the list
                     sub["translations"].append(new_t)
+                    sub_changed = True
 
                 else:
                     print(f"  Error {response.status_code}: {response.text}")
             except Exception as e:
                 print(f"  Request failed: {e}")
-        
-        # Save on each finalized submission
-        with open(DATA_FILE, "w", encoding="utf-8") as f:
-            json.dump(submissions, f, indent=2, ensure_ascii=False)
+
+        if sub_changed:
+            # save on each finalized changed submission
+            with open(DATA_FILE, "w", encoding="utf-8") as f:
+                json.dump(submissions, f, indent=2, ensure_ascii=False)
 
 
     # save finally

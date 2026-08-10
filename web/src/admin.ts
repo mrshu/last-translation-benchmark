@@ -159,7 +159,7 @@ function renderTable(users: AdminUser[]): void {
     $('.act-quota').on('click', async function () {
         const uid = $(this).data('uid');
         const u = allUsers.find(u => u.id === uid);
-        const raw = prompt(`Adjust quota (current: ${u?.quota}, used: ${u?.quota_used}).\nUse + or - to adjust (e.g. +50 or -10):`);
+        const raw = prompt(`Adjust quota (current: ${u?.quota}, used: ${Math.ceil(u?.quota_used || 0)}).\nUse + or - to adjust (e.g. +50 or -10):`);
         if (raw === null) return;
         if (!/^[+-]\d+$/.test(raw.trim())) { alert('Invalid input. Must start with + or - followed by a number.'); return; }
         const delta = parseInt(raw.trim(), 10);
