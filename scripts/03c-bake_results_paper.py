@@ -1,5 +1,8 @@
+# %%
+
 import collections
 import json
+import statistics
 import os
 import utils_fig
 import matplotlib.pyplot as plt
@@ -75,11 +78,6 @@ dates_accepted = np.array(dates_accepted)
 dates_pending = np.array(dates_pending)
 dates_returned = np.array(dates_returned)
 
-# # derivative
-# plt.plot(range(delta_today+1), [x2-x1 for x1, x2 in zip([0]+list(dates_accepted[:-1]), dates_accepted)], color="green", linewidth=2)
-# plt.plot(range(delta_today+1), [x2-x1 for x1, x2 in zip([0]+list(dates_pending[:-1]), dates_pending)], color="orange", linewidth=2)
-# plt.plot(range(delta_today+1), [x2-x1 for x1, x2 in zip([0]+list(dates_returned[:-1]), dates_returned)], color="red", linewidth=2)
-
 plt.figure(figsize=(4, 2.5))
 plt.plot(range(delta_today+1), dates_accepted, color="green", linewidth=2)
 plt.plot(range(delta_today+1), dates_pending, color="orange", linewidth=2)
@@ -124,14 +122,40 @@ data_out["status_counts"] = dict(status_counts.most_common())
 # number of quota_used per all submissions
 data_out["quota_per_submission"] = f"{sum(x["quota_used"] for x in data_users if x["quota_used"]) / len(data_submissions):.1f}"
 
-counter_passing = collections.Counter()
-for submission in data_submissions:
-    # how many systems pass
-    if submission["translations"] is None:
-        continue
-    passing = sum(all(entry["verified"]) for entry in submission["translations"] if entry["verified"] is not None)
-    counter_passing[passing-1] += 1
+# compute per model results
 
-data_out["passing_counts"] = dict(counter_passing.most_common())
+
+data_models = collections.defaultdict(lambda: collections.defaultdict(list))
+
+with open("computed/autometrics_cache.json", "r") as f:
+    data_autometrics_cache = json.load(f)
+for submission in data_submissions:
+    human_translation = [x for x in submission["translations"] if x["model"] == "human"][0]["translation"]
+    for entry in submission["translations"]:
+        autometrics_key = f"{submission['source_lang']}_#_{submission['target_lang']}_#_{submission['source_text']}_#_{entry['translation']}_#_{human_translation}"
+        if autometrics_key in data_autometrics_cache:
+            for metric, score in data_autometrics_cache[autometrics_key].items():
+                if score is not None:
+                    data_models[entry["model"]]["AUTOMETRIC: " + metric].append(score)
+        if "verified" in entry:
+            data_models[entry["model"]]["VERIFIER: interactive"].append(all(entry["verified"]))
+        for verifier, results in entry.get("verified_extra", {}).items():
+            if all(x is not None for x in results):
+                data_models[entry["model"]]["VERIFIER: " + verifier].append(all(results))
+        for verifier, result in entry.get("judge_extra", {}).items():
+            if result is not None:
+                data_models[entry["model"]]["JUDGE: " + verifier].append(result)
+
+all_keys = {k for results in data_models.values() for k in results.keys()}
+
+data_out["model_results"] = {
+    model: {
+        key: statistics.mean(results[key]) if key in results else None
+        for key in all_keys
+    }
+    for model, results in data_models.items()
+    if any(len(result) >= 10 for result in results.values())
+}
+                
 with open("computed/bake_results.json", "w") as f:
-    json.dump(data_out, f, indent=2)
+    json.dump(data_out, f, indent=2, ensure_ascii=False)

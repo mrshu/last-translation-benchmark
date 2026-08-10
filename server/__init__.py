@@ -6,6 +6,7 @@ import asyncio
 import logging
 import os
 import time
+import urllib.parse
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -73,7 +74,7 @@ async def custom_logging(request: Request, call_next):
     print(
         time.strftime("[%Y-%m-%d %H:%M]"),
         response.status_code,
-        request.query_params.get("user") or request.cookies.get("ltb_user"),
+        request.query_params.get("user") or urllib.parse.unquote(request.cookies.get("ltb_user", "")),
         request.method,
         request.url.path,
         flush=True,

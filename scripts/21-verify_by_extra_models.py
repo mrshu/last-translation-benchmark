@@ -13,11 +13,14 @@ from last_translation_benchmark.utils import get_config
 
 MODELS_VERIFIERS = [
     {"name": "Gemma 4", "model": "google/gemma-4-31b-it"},
-    # {"name": "Gemma 4 a4b", "model": "google/gemma-4-26b-a4b-it"},
-    # {"name": "Gemini 3.1 Pro", "model": "google/gemini-3.1-pro-preview"},
-    # {"name": "GPT-5.4-mini", "model": "openai/gpt-5.4-mini"},
-    # {"name": "Qwen 3.7 Plus", "model": "qwen/qwen3.7-plus"},
-    # {"name": "DeepSeek V4 Pro", "model": "deepseek/deepseek-v4-pro"}
+    {"name": "Gemma 4 a4b", "model": "google/gemma-4-26b-a4b-it"},
+    {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite"},
+    {"name": "Gemini 3.6 Flash", "model": "google/gemini-3.6-flash"},
+    {"name": "Qwen 3.7 Flash", "model": "qwen/qwen3.7-flash"},
+    {"name": "Gemini 3.1 Pro", "model": "google/gemini-3.1-pro-preview"},
+    {"name": "GPT-5.4-mini", "model": "openai/gpt-5.4-mini"},
+    {"name": "Qwen 3.7 Plus", "model": "qwen/qwen3.7-plus"},
+    {"name": "DeepSeek V4 Pro", "model": "deepseek/deepseek-v4-pro"}
 ]
 API_URL = "https://last-translation-benchmark.vilda.net/api/llm"
 DATA_FILE = "data/submissions.json"
@@ -66,6 +69,21 @@ def model_price_per_token(model_name: str, tokens: int) -> float:
 def estimate_tokens(text: str) -> int:
     encoder = tiktoken.get_encoding("cl100k_base")
     return len(encoder.encode(text))
+
+async def request_post_with_backoff(**kwargs):
+    delay = 1
+    for _ in range(3):
+        response = requests.post(**kwargs)
+        if response.status_code == 200:
+            return response
+        elif response.status_code == 429:
+            print(f"Rate limited. Retrying in {delay} seconds...")
+        else:
+            raise Exception(f"Request failed with status {response.status_code}: {response.text}")
+        await asyncio.sleep(delay)
+        delay *= 2
+
+    raise Exception(f"Request failed after 3 retries")
 
 async def main():
     with open(DATA_FILE, "r") as f:
@@ -148,7 +166,7 @@ async def main():
 
                     pbar.set_description(f"Verifying #{sub['id']}/{mt_i}/{rule_i} with {model['name']}")
                     try:
-                        response = requests.post(url=API_URL, json=payload, cookies=COOKIES)
+                        response = await request_post_with_backoff(url=API_URL, json=payload, cookies=COOKIES)
                         if response.status_code == 200:
                             res_text = response.json()
                             if res_text is None:
@@ -208,7 +226,7 @@ async def main():
                 pbar.set_description(f"Verifying #{sub['id']}/{mt_i}/judge with {model['name']}")
                 result = None
                 try:
-                    response = requests.post(url=API_URL, json=payload, cookies=COOKIES)
+                    response = await request_post_with_backoff(url=API_URL, json=payload, cookies=COOKIES)
                     if response.status_code == 200:
                         res_text = response.json()
                         if res_text is None:

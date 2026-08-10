@@ -1,10 +1,14 @@
-#!/usr/bin/env python3
+# %%
+
 import collections
 import json
 import argparse
 import statistics
 import utils_fig
 import matplotlib.pyplot as plt
+import os
+
+os.chdir(os.path.dirname(os.path.abspath(__file__))+"/..")
 
 args = argparse.ArgumentParser()
 args.add_argument("--data", default="data/submissions.json")

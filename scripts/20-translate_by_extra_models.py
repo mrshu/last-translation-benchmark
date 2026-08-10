@@ -12,17 +12,29 @@ os.chdir(os.path.dirname(os.path.abspath(__file__))+"/..")
 from last_translation_benchmark.utils import get_config
 
 MODELS = [
-    # {"name": "gpt-oss-20b", "model": "openai/gpt-oss-20b", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Gemma 4", "model": "google/gemma-4-31b-it", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
+    {"name": "Llama 4 Maverick", "model": "meta-llama/llama-4-maverick", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "GPT-5.4 Mini", "model": "openai/gpt-5.4-mini", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Claude Haiku 4.5", "model": "anthropic/claude-haiku-4.5", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Claude Sonnet 4.5", "model": "anthropic/claude-sonnet-4.5", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Cohere Command A", "model": "cohere/command-a", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Qwen 3.7 Plus", "model": "qwen/qwen3.7-plus", "support_image": False, "support_audio": False, "support_video": True, "support_textonly": False},
+    # {"name": "Gemini 2.5 Flash", "model": "google/gemini-2.5-flash", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
+    # {"name": "Gemini 3.5 Flash", "model": "google/gemini-3.5-flash", "support_image": False, "support_audio": True, "support_video": True, "support_textonly": False},
+    # {"name": "Gemini 2.5 Pro", "model": "google/gemini-2.5-pro", "support_image": False, "support_audio": True, "support_video": True, "support_textonly": False},
+    # {"name": "Voxtral Small", "model": "mistralai/voxtral-small-24b-2507", "support_image": False, "support_audio": True, "support_video": False, "support_textonly": False},
+
+    {"name": "gpt-oss-20b", "model": "openai/gpt-oss-20b", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "Gemma 4 a4b", "model": "google/gemma-4-26b-a4b-it", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
-    # {"name": "Gemini 3.6 Flash", "model": "google/gemini-3.6-flash", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
+    {"name": "Gemini 3.6 Flash", "model": "google/gemini-3.6-flash", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
     {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
-    # {"name": "Kimi K3", "model": "moonshotai/kimi-k3", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
-    # {"name": "Claude Opus 4.8", "model": "anthropic/claude-opus-4.8", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
-    # {"name": "Minimax M3", "model": "minimax/minimax-m3", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
-    # {"name": "GLM 5.2", "model": "z-ai/glm-5.2", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
-    # {"name": "Nemotron 3 Ultra", "model": "nvidia/nemotron-3-ultra-550b-a55b", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
-    # {"name": "Qwen 3.7 Flash", "model": "qwen/qwen3.7-flash", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
-    # {"name": "DeepSeek V4 Pro", "model": "deepseek/deepseek-v4-pro", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Kimi K3", "model": "moonshotai/kimi-k3", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Claude Opus 4.8", "model": "anthropic/claude-opus-4.8", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Minimax M3", "model": "minimax/minimax-m3", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
+    {"name": "GLM 5.2", "model": "z-ai/glm-5.2", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Nemotron 3 Ultra", "model": "nvidia/nemotron-3-ultra-550b-a55b", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Qwen 3.7 Flash", "model": "qwen/qwen3.7-flash", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
+    {"name": "DeepSeek V4 Pro", "model": "deepseek/deepseek-v4-pro", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
 ]
 API_URL = "https://last-translation-benchmark.vilda.net/api/llm"
 DATA_FILE = "data/submissions.json"
@@ -82,6 +94,22 @@ def estimate_tokens(text: str) -> int:
     return len(encoder.encode(text))
 
 
+async def request_post_with_backoff(**kwargs):
+    delay = 1
+    for _ in range(3):
+        response = requests.post(**kwargs)
+        if response.status_code == 200:
+            return response
+        elif response.status_code == 429:
+            print(f"Rate limited. Retrying in {delay} seconds...")
+        else:
+            raise Exception(f"Request failed with status {response.status_code}: {response.text}")
+        await asyncio.sleep(delay)
+        delay *= 2
+
+    raise Exception(f"Request failed after 3 retries")
+
+
 async def main():
     with open(DATA_FILE, "r") as f:
         submissions = json.load(f)
@@ -127,7 +155,7 @@ async def main():
 
             pbar.set_description(f"Translating #{sub['id']} with {model['model']}")
             try:
-                response = requests.post(url=API_URL, json=payload, cookies=COOKIES)
+                response = await request_post_with_backoff(url=API_URL, json=payload, cookies=COOKIES)
                 if response.status_code == 200:
                     translation = response.json()
                     new_t = {
