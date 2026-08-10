@@ -146,13 +146,41 @@ for submission in data_submissions:
             if result is not None:
                 data_models[entry["model"]]["JUDGE: " + verifier].append(result)
 
-all_keys_ban = {
-    "Gemma 4 a4b", "Gemini 3.5 Flash Lite"
+llm_whitelist = {
+    "interactive",
+    "Qwen 3.7 Flash",
+    "Qwen 3.7 Plus",
+    "Gemma 4",
+    "Gemini 3.1 Pro",
+    "Gemini 3.5 Flash Lite",
+    "GPT-5.4-mini",
+    "Deepseek V4 Pro",
 }
+
+model_whitelist = {
+    "human",
+    "Gemma 4",
+    "Gemini 2.5 Flash",
+    "Llama 4 Maverick", 
+    "GPT-5.4 Mini",
+    "Claude Haiku 4.5",
+    "Claude Sonnet 4.5",
+    "Cohere Command A", 
+    "Qwen 3.7 Plus",
+    "Gemini 3.5 Flash Lite",
+    "Qwen 3.7 Flash",
+    "gpt-oss-20b",
+    "Kimi K3",
+    "Google Translate",
+    "Lara",
+    "Nemotron 3 Ultra",
+    "Deepseek V4 Pro",
+}
+
 all_keys = {
     k for results in data_models.values()
     for k in results.keys()
-    if not any(ban in k for ban in all_keys_ban)
+    if (not (k.startswith("VERIFIER: ")) and (not k.startswith("JUDGE: "))) or any(k.endswith(k_allowed) for k_allowed in llm_whitelist)
 }
 
 data_out["model_results"] = {
@@ -161,7 +189,8 @@ data_out["model_results"] = {
         for key in all_keys
     }
     for model, results in data_models.items()
-    if any(len(result) >= 50 for result in results.values())
+    if model in model_whitelist
+    # if any(len(result) >= 50 for result in results.values())
 }
                 
 with open("computed/bake_results.json", "w") as f:

@@ -12,15 +12,13 @@ os.chdir(os.path.dirname(os.path.abspath(__file__))+"/..")
 from last_translation_benchmark.utils import get_config
 
 MODELS_VERIFIERS = [
-    # {"name": "Gemini 3.6 Flash", "model": "google/gemini-3.6-flash"},
-    # {"name": "Gemma 4 a4b", "model": "google/gemma-4-26b-a4b-it"},
     {"name": "Qwen 3.7 Flash", "model": "qwen/qwen3.7-flash"},
     {"name": "Qwen 3.7 Plus", "model": "qwen/qwen3.7-plus"},
     {"name": "Gemma 4", "model": "google/gemma-4-31b-it"},
     {"name": "Gemini 3.1 Pro", "model": "google/gemini-3.1-pro-preview"},
     {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite"},
     {"name": "GPT-5.4-mini", "model": "openai/gpt-5.4-mini"},
-    {"name": "DeepSeek V4 Pro", "model": "deepseek/deepseek-v4-pro"}
+    {"name": "Deepseek V4 Pro", "model": "deepseek/deepseek-v4-pro"}
 ]
 API_URL = "https://last-translation-benchmark.vilda.net/api/llm"
 DATA_FILE = "data/submissions.json"
