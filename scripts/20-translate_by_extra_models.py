@@ -85,7 +85,7 @@ async def main():
     with open(DATA_FILE, "r") as f:
         submissions = json.load(f)
 
-    text_count = estimate_tokens(" ".join([get_prompt(sub) for sub in submissions]))
+    text_count = estimate_tokens(" ".join([get_prompt(sub) for sub in submissions if sub["status"] == "accept"]))
     print(f"Total tokens: {text_count}")
     for model in MODELS:
         print(f"Cost for {model['model']:<40} ${model_price_per_token(model["model"], text_count):.4f}")
