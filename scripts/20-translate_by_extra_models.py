@@ -24,16 +24,16 @@ MODELS = [
     # {"name": "Gemini 2.5 Pro", "model": "google/gemini-2.5-pro", "support_image": False, "support_audio": True, "support_video": True, "support_textonly": False},
     # {"name": "Voxtral Small", "model": "mistralai/voxtral-small-24b-2507", "support_image": False, "support_audio": True, "support_video": False, "support_textonly": False},
 
-    {"name": "gpt-oss-20b", "model": "openai/gpt-oss-20b", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Gemma 4 a4b", "model": "google/gemma-4-26b-a4b-it", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
-    {"name": "Gemini 3.6 Flash", "model": "google/gemini-3.6-flash", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
+    # {"name": "Gemma 4 a4b", "model": "google/gemma-4-26b-a4b-it", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
+    # {"name": "Gemini 3.6 Flash", "model": "google/gemini-3.6-flash", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
+    # {"name": "Claude Opus 4.8", "model": "anthropic/claude-opus-4.8", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
+    # {"name": "Minimax M3", "model": "minimax/minimax-m3", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
+    # {"name": "GLM 5.2", "model": "z-ai/glm-5.2", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
-    {"name": "Kimi K3", "model": "moonshotai/kimi-k3", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Claude Opus 4.8", "model": "anthropic/claude-opus-4.8", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Minimax M3", "model": "minimax/minimax-m3", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
-    {"name": "GLM 5.2", "model": "z-ai/glm-5.2", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Nemotron 3 Ultra", "model": "nvidia/nemotron-3-ultra-550b-a55b", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "Qwen 3.7 Flash", "model": "qwen/qwen3.7-flash", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
+    {"name": "gpt-oss-20b", "model": "openai/gpt-oss-20b", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Kimi K3", "model": "moonshotai/kimi-k3", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Nemotron 3 Ultra", "model": "nvidia/nemotron-3-ultra-550b-a55b", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "DeepSeek V4 Pro", "model": "deepseek/deepseek-v4-pro", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
 ]
 API_URL = "https://last-translation-benchmark.vilda.net/api/llm"
@@ -96,6 +96,7 @@ def estimate_tokens(text: str) -> int:
 
 async def request_post_with_backoff(**kwargs):
     delay = 1
+    await asyncio.sleep(0.5)
     for _ in range(3):
         response = requests.post(**kwargs)
         if response.status_code == 200:

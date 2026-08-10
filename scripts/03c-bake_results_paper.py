@@ -146,7 +146,14 @@ for submission in data_submissions:
             if result is not None:
                 data_models[entry["model"]]["JUDGE: " + verifier].append(result)
 
-all_keys = {k for results in data_models.values() for k in results.keys()}
+all_keys_ban = {
+    "Gemma 4 a4b", "Gemini 3.5 Flash Lite"
+}
+all_keys = {
+    k for results in data_models.values()
+    for k in results.keys()
+    if not any(ban in k for ban in all_keys_ban)
+}
 
 data_out["model_results"] = {
     model: {
@@ -154,7 +161,7 @@ data_out["model_results"] = {
         for key in all_keys
     }
     for model, results in data_models.items()
-    if any(len(result) >= 10 for result in results.values())
+    if any(len(result) >= 50 for result in results.values())
 }
                 
 with open("computed/bake_results.json", "w") as f:

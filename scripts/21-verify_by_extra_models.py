@@ -12,14 +12,14 @@ os.chdir(os.path.dirname(os.path.abspath(__file__))+"/..")
 from last_translation_benchmark.utils import get_config
 
 MODELS_VERIFIERS = [
-    {"name": "Gemma 4", "model": "google/gemma-4-31b-it"},
-    {"name": "Gemma 4 a4b", "model": "google/gemma-4-26b-a4b-it"},
-    {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite"},
-    {"name": "Gemini 3.6 Flash", "model": "google/gemini-3.6-flash"},
+    # {"name": "Gemini 3.6 Flash", "model": "google/gemini-3.6-flash"},
+    # {"name": "Gemma 4 a4b", "model": "google/gemma-4-26b-a4b-it"},
     {"name": "Qwen 3.7 Flash", "model": "qwen/qwen3.7-flash"},
-    {"name": "Gemini 3.1 Pro", "model": "google/gemini-3.1-pro-preview"},
-    {"name": "GPT-5.4-mini", "model": "openai/gpt-5.4-mini"},
     {"name": "Qwen 3.7 Plus", "model": "qwen/qwen3.7-plus"},
+    {"name": "Gemma 4", "model": "google/gemma-4-31b-it"},
+    {"name": "Gemini 3.1 Pro", "model": "google/gemini-3.1-pro-preview"},
+    {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite"},
+    {"name": "GPT-5.4-mini", "model": "openai/gpt-5.4-mini"},
     {"name": "DeepSeek V4 Pro", "model": "deepseek/deepseek-v4-pro"}
 ]
 API_URL = "https://last-translation-benchmark.vilda.net/api/llm"
@@ -72,11 +72,13 @@ def estimate_tokens(text: str) -> int:
 
 async def request_post_with_backoff(**kwargs):
     delay = 1
+    await asyncio.sleep(0.5)
     for _ in range(3):
         response = requests.post(**kwargs)
         if response.status_code == 200:
             return response
         elif response.status_code == 429:
+            print(response.text)
             print(f"Rate limited. Retrying in {delay} seconds...")
         else:
             raise Exception(f"Request failed with status {response.status_code}: {response.text}")
@@ -133,9 +135,13 @@ async def main():
 
         sub_changed = False
         for mt_i, mt_obj in enumerate(sub["translations"]):
+            if mt_obj["model"].startswith("SKIP: "):
+                continue
+
             # verifier section
             if "verified_extra" not in mt_obj:
                 mt_obj["verified_extra"] = {}
+
             for model in MODELS_VERIFIERS:
                 # skip if this model has already verified this translation
                 if model["name"] in mt_obj["verified_extra"] and len(mt_obj["verified_extra"][model["name"]]) == len(sub["verification_rules"]):
@@ -164,7 +170,7 @@ async def main():
                     if sub["source_media"]:
                         payload["source_media"] = sub["source_media"]
 
-                    pbar.set_description(f"Verifying #{sub['id']}/{mt_i}/{rule_i} with {model['name']}")
+                    pbar.set_description(f"Verifying #{sub['id']}/{mt_obj['model']}/rule{rule_i} with {model['name']}")
                     try:
                         response = await request_post_with_backoff(url=API_URL, json=payload, cookies=COOKIES)
                         if response.status_code == 200:
@@ -192,12 +198,10 @@ async def main():
                 mt_obj["verified_extra"][model["name"]] = results
                 sub_changed = True
 
-
             # judge section
             if "judge_extra" not in mt_obj:
                 mt_obj["judge_extra"] = {}
             for model in MODELS_VERIFIERS:
-
                 # skip if this model has already verified this translation
                 if model["name"] in mt_obj["judge_extra"] and mt_obj["judge_extra"][model["name"]] is not None:
                     continue
@@ -223,7 +227,7 @@ async def main():
                 if sub["source_media"]:
                     payload["source_media"] = sub["source_media"]
 
-                pbar.set_description(f"Verifying #{sub['id']}/{mt_i}/judge with {model['name']}")
+                pbar.set_description(f"Verifying #{sub['id']}/{mt_obj["model"]}/judge with {model['name']}")
                 result = None
                 try:
                     response = await request_post_with_backoff(url=API_URL, json=payload, cookies=COOKIES)
@@ -231,17 +235,16 @@ async def main():
                         res_text = response.json()
                         if res_text is None:
                             print(f"  Empty LLM response for #{sub['id']}")
-                            continue
-
-                        text_clean = res_text.strip().lower().strip(" \t\n\r.,!?\"'*")
-                        try:
-                            result = int(float(text_clean))
-                            if not (0 <= result <= 100):
+                        else:
+                            try:
+                                text_clean = res_text.strip().lower().strip(" \t\n\r.,!?\"'*")
+                                result = int(float(text_clean))
+                                if not (0 <= result <= 100):
+                                    print(f"  Invalid LLM response: {res_text}")
+                                    result = None
+                            except ValueError:
                                 print(f"  Invalid LLM response: {res_text}")
                                 result = None
-                        except ValueError:
-                            print(f"  Invalid LLM response: {res_text}")
-                            result = None
                     else:
                         print(f"  Error {response.status_code}: {response.text}")
                         result = None
