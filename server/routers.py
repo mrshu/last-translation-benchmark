@@ -10,6 +10,7 @@ import time
 from datetime import UTC, datetime
 from typing import Annotated, Literal
 
+import openrouter.errors
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from .auth import get_current_user, require_role
@@ -262,13 +263,17 @@ async def api_call_llm(req: APILLMReq, user: CurrentUser):
     quota_used = user["quota_used"]
     if quota_used >= quota:
         raise HTTPException(status_code=429, detail="Quota exceeded")
-        
-    result = await call_llm_multimodal(
-        prompt=req.prompt, model=req.model, source_media=req.source_media
-    )
-    
+
     user["quota_used"] = quota_used + 0.1
     await save_user(user)
+
+    # catch errors.TooManyRequestsResponseError
+    try:    
+        result = await call_llm_multimodal(
+            prompt=req.prompt, model=req.model, source_media=req.source_media
+        )
+    except openrouter.errors.TooManyRequestsResponseError:
+        raise HTTPException(status_code=429, detail=f"Too many requests to OpenRouter/{req.model}. Please try again later.")
     
     return result
 
