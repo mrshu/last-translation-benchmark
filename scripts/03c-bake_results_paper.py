@@ -180,6 +180,12 @@ model_whitelist = {
     "Lara",
     "Nemotron 3 Ultra",
     "Deepseek V4 Pro",
+    "TranslateGemma",
+    "Tower+",
+    "GemmaX2-28-9B",
+    "HY-MT2",
+    "Seed-X-PPO-7B",
+    "NLLB-200",
 }
 
 all_keys = {
