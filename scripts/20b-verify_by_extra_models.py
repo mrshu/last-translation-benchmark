@@ -12,12 +12,12 @@ os.chdir(os.path.dirname(os.path.abspath(__file__))+"/..")
 from last_translation_benchmark.utils import get_config
 
 MODELS_VERIFIERS = [
-    # {"name": "Qwen 3.7 Flash", "model": "qwen/qwen3.7-flash"},
-    # {"name": "Qwen 3.7 Plus", "model": "qwen/qwen3.7-plus"},
-    # {"name": "Gemma 4", "model": "google/gemma-4-31b-it"},
-    # {"name": "Gemini 3.1 Pro", "model": "google/gemini-3.1-pro-preview"},
+    {"name": "Qwen 3.7 Flash", "model": "qwen/qwen3.7-flash"},
+    {"name": "Qwen 3.7 Plus", "model": "qwen/qwen3.7-plus"},
+    {"name": "Gemma 4", "model": "google/gemma-4-31b-it"},
+    {"name": "Gemini 3.1 Pro", "model": "google/gemini-3.1-pro-preview"},
     {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite"},
-    # {"name": "GPT-5.4-mini", "model": "openai/gpt-5.4-mini"},
+    {"name": "GPT-5.4-mini", "model": "openai/gpt-5.4-mini"},
 ]
 API_URL = "https://last-translation-benchmark.vilda.net/api/llm"
 DATA_FILE = "data/submissions.json"
@@ -116,7 +116,7 @@ async def main():
     for model in MODELS_VERIFIERS:
         print(f"Cost for {model['model']:<40} ${model_price_per_token(model['model'], text_count_judge):.4f}")
 
-    input("Do you wish to continue? (Ctrl+C to cancel)")
+    # input("Do you wish to continue? (Ctrl+C to cancel)")
 
     pbar = tqdm.tqdm(submissions, desc="Processing submissions")
     pbar_desc = ""

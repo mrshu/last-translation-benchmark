@@ -1006,6 +1006,12 @@ async def score_submission(sid: int, req: ScoreReq, user: CurrentUser):
 
     if req.action == "accept":
         submission["status"] = "accept"
+        # give +10 credits to the author for accepted submission
+        author = await get_user_by_id(submission["user_id"])
+        if author:
+            author["quota"] += 10
+            await save_user(author)
+
     elif req.action == "return":
         submission["status"] = "return"
     elif req.action == "pending":

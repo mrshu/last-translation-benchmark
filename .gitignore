@@ -2,6 +2,7 @@ web/src/model_results.svg
 computed/
 .vscode/
 humeval/
+nohup.out
 
 config.toml
 scripts/data/
