@@ -2,6 +2,7 @@
 
 import collections
 import json
+
 import statistics
 import os
 import utils_fig
@@ -145,6 +146,11 @@ for submission in data_submissions:
         for verifier, result in entry.get("judge_extra", {}).items():
             if result is not None:
                 data_models[entry["model"]]["JUDGE: " + verifier].append(result)
+
+# fake for now
+for model, results in data_models.items():
+    results["HUMAN: standalone"] = [70.0]
+    results["HUMAN: with rules"] = [50.0]
 
 llm_whitelist = {
     "interactive",

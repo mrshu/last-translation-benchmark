@@ -141,7 +141,7 @@ async def main():
             if mt_obj["model"].startswith("SKIP: "):
                 continue
 
-            pbar_desc = f"Verifying #{sub['id']}, {mt_obj['model']}"
+            pbar_desc = f"Verifying #{sub['id']} of {mt_obj['model']}"
             update_pbar()
 
             # verifier section
@@ -176,7 +176,7 @@ async def main():
                                 results.append(None)
                                 continue
 
-                            text_clean = res_text.strip().lower().strip(" \t\n\r.,!?\"'*")
+                            text_clean = res_text.strip().lower().strip(" \t\n\r.,!?\"'*").split()[-1]
                             if text_clean == "pass":
                                 results.append(True)
                             elif text_clean == "fail":

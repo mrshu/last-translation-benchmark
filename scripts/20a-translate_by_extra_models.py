@@ -5,7 +5,6 @@ import requests
 from tqdm import tqdm
 import tiktoken
 import asyncio
-import random
 import os
 os.chdir(os.path.dirname(os.path.abspath(__file__))+"/..")
 
