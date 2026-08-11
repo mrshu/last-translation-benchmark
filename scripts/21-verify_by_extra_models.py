@@ -2,10 +2,10 @@ import json
 import os
 import urllib.parse
 import requests
-from tqdm import tqdm
 import tiktoken
 import random
 import asyncio
+import tqdm
 
 os.chdir(os.path.dirname(os.path.abspath(__file__))+"/..")
 
@@ -18,7 +18,6 @@ MODELS_VERIFIERS = [
     {"name": "Gemini 3.1 Pro", "model": "google/gemini-3.1-pro-preview"},
     {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite"},
     {"name": "GPT-5.4-mini", "model": "openai/gpt-5.4-mini"},
-    {"name": "Deepseek V4 Pro", "model": "deepseek/deepseek-v4-pro"}
 ]
 API_URL = "https://last-translation-benchmark.vilda.net/api/llm"
 DATA_FILE = "data/submissions.json"
@@ -117,7 +116,13 @@ async def main():
 
     input("Do you wish to continue? (Ctrl+C to cancel)")
 
-    pbar = tqdm(submissions, desc="Processing submissions")
+    pbar = tqdm.tqdm(submissions, desc="Processing submissions")
+    pbar_desc = ""
+    pbar_tasks = set()
+
+    def update_pbar():
+        pbar.set_description(f"{pbar_desc} with {', '.join(sorted(pbar_tasks))}")
+
     for sub in pbar:
         if sub["status"] != "accept":
             continue
@@ -132,30 +137,21 @@ async def main():
             source_text_display = sub["source_text"]
 
         sub_changed = False
-        for mt_i, mt_obj in enumerate(sub["translations"]):
+        for mt_obj in sub["translations"]:
             if mt_obj["model"].startswith("SKIP: "):
                 continue
+
+            pbar_desc = f"Verifying #{sub['id']}, {mt_obj['model']}"
+            update_pbar()
 
             # verifier section
             if "verified_extra" not in mt_obj:
                 mt_obj["verified_extra"] = {}
 
-            for model in MODELS_VERIFIERS:
+            async def _process_model_verifier(model):
                 # skip if this model has already verified this translation
                 if model["name"] in mt_obj["verified_extra"] and len(mt_obj["verified_extra"][model["name"]]) == len(sub["verification_rules"]):
-                    continue
-
-                if sub["source_media"]:
-                    mime = sub["source_media"].split(",")[0]
-                    has_audio = "audio" in mime
-                    has_video = "video" in mime
-                    has_image = not has_audio and not has_video
-                    if (
-                        (has_audio and not model["support_audio"]) or
-                        (has_video and not model["support_video"]) or
-                        (has_image and not model["support_image"])
-                    ):
-                        continue
+                    return False
 
                 results = []
                 for rule_i, rule_obj in enumerate(sub["verification_rules"]):
@@ -168,8 +164,10 @@ async def main():
                     if sub["source_media"]:
                         payload["source_media"] = sub["source_media"]
 
-                    pbar.set_description(f"Verifying #{sub['id']}/{mt_obj['model']}/rule{rule_i} with {model['name']}")
+                    progress_id = f"{rule_i}§{model['name']}"
                     try:
+                        pbar_tasks.add(progress_id)
+                        update_pbar()
                         response = await request_post_with_backoff(url=API_URL, json=payload, cookies=COOKIES)
                         if response.status_code == 200:
                             res_text = response.json()
@@ -192,29 +190,26 @@ async def main():
                     except Exception as e:
                         print(f"  Request failed: {e}")
                         results.append(None)
+                    finally:
+                        pbar_tasks.discard(progress_id)
+                        update_pbar()
 
+                # store the result
                 mt_obj["verified_extra"][model["name"]] = results
-                sub_changed = True
+                return True
+
+            # parallelize all rules at the same time
+            tasks = await asyncio.gather(*[_process_model_verifier(model) for model in MODELS_VERIFIERS])
+            sub_changed = sub_changed or any(tasks)
 
             # judge section
             if "judge_extra" not in mt_obj:
                 mt_obj["judge_extra"] = {}
-            for model in MODELS_VERIFIERS:
-                # skip if this model has already verified this translation
-                if model["name"] in mt_obj["judge_extra"] and mt_obj["judge_extra"][model["name"]] is not None:
-                    continue
 
-                if sub["source_media"]:
-                    mime = sub["source_media"].split(",")[0]
-                    has_audio = "audio" in mime
-                    has_video = "video" in mime
-                    has_image = not has_audio and not has_video
-                    if (
-                        (has_audio and not model["support_audio"]) or
-                        (has_video and not model["support_video"]) or
-                        (has_image and not model["support_image"])
-                    ):
-                        continue
+            async def _process_model_judge(model):
+                # skip if this model has already verified this translation
+                if model["name"] in mt_obj["judge_extra"]:
+                    return False
 
                 prompt = get_prompt_judge(source_text_display, mt_obj["translation"], sub["source_media"])
 
@@ -225,9 +220,11 @@ async def main():
                 if sub["source_media"]:
                     payload["source_media"] = sub["source_media"]
 
-                pbar.set_description(f"Verifying #{sub['id']}/{mt_obj["model"]}/judge with {model['name']}")
+                progress_id = f"j§{model['name']}"
                 result = None
                 try:
+                    pbar_tasks.add(progress_id)
+                    update_pbar()
                     response = await request_post_with_backoff(url=API_URL, json=payload, cookies=COOKIES)
                     if response.status_code == 200:
                         res_text = response.json()
@@ -235,7 +232,8 @@ async def main():
                             print(f"  Empty LLM response for #{sub['id']}")
                         else:
                             try:
-                                text_clean = res_text.strip().lower().strip(" \t\n\r.,!?\"'*")
+                                # take only the last word, in case the model outputs extra text
+                                text_clean = res_text.strip().lower().strip(" \t\n\r.,!?\"'*%").split()[-1]
                                 result = int(float(text_clean))
                                 if not (0 <= result <= 100):
                                     print(f"  Invalid LLM response: {res_text}")
@@ -249,16 +247,23 @@ async def main():
                 except Exception as e:
                     print(f"  Request failed: {e}")
                     result = None
+                finally:
+                    pbar_tasks.discard(progress_id)
+                    update_pbar()
 
                 mt_obj["judge_extra"][model["name"]] = result
-                sub_changed = True
+                return True
+
+            # parallelize all rules at the same time
+            tasks = await asyncio.gather(*[_process_model_judge(model) for model in MODELS_VERIFIERS])
+            sub_changed = sub_changed or any(tasks)
 
         if sub_changed:
-            with open(DATA_FILE, "w", encoding="utf-8") as f:
+            with open(DATA_FILE, "w") as f:
                 json.dump(submissions, f, indent=2, ensure_ascii=False)
 
     # save finally
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
+    with open(DATA_FILE, "w") as f:
         json.dump(submissions, f, indent=2, ensure_ascii=False)
 
 

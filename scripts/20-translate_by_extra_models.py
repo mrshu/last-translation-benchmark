@@ -18,23 +18,25 @@ MODELS = [
     {"name": "Claude Haiku 4.5", "model": "anthropic/claude-haiku-4.5", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "Claude Sonnet 4.5", "model": "anthropic/claude-sonnet-4.5", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "Cohere Command A", "model": "cohere/command-a", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Qwen 3.7 Plus", "model": "qwen/qwen3.7-plus", "support_image": False, "support_audio": False, "support_video": True, "support_textonly": False},
+    # models we use upstream but not anymore maybe?
     # {"name": "Gemini 2.5 Flash", "model": "google/gemini-2.5-flash", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
     # {"name": "Gemini 3.5 Flash", "model": "google/gemini-3.5-flash", "support_image": False, "support_audio": True, "support_video": True, "support_textonly": False},
     # {"name": "Gemini 2.5 Pro", "model": "google/gemini-2.5-pro", "support_image": False, "support_audio": True, "support_video": True, "support_textonly": False},
     # {"name": "Voxtral Small", "model": "mistralai/voxtral-small-24b-2507", "support_image": False, "support_audio": True, "support_video": False, "support_textonly": False},
 
+    {"name": "Qwen 3.7 Plus", "model": "qwen/qwen3.7-plus", "support_image": False, "support_audio": False, "support_video": True, "support_textonly": False},
+    {"name": "Qwen 3.7 Flash", "model": "qwen/qwen3.7-flash", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
+    {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
+    {"name": "gpt-oss-20b", "model": "openai/gpt-oss-20b", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Kimi K3", "model": "moonshotai/kimi-k3", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Nemotron 3 Ultra", "model": "nvidia/nemotron-3-ultra-550b-a55b", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Deepseek V4 Pro", "model": "deepseek/deepseek-v4-pro", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    # decided not to use these models
     # {"name": "Gemma 4 a4b", "model": "google/gemma-4-26b-a4b-it", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
     # {"name": "Gemini 3.6 Flash", "model": "google/gemini-3.6-flash", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
     # {"name": "Claude Opus 4.8", "model": "anthropic/claude-opus-4.8", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     # {"name": "Minimax M3", "model": "minimax/minimax-m3", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
     # {"name": "GLM 5.2", "model": "z-ai/glm-5.2", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
-    {"name": "Qwen 3.7 Flash", "model": "qwen/qwen3.7-flash", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
-    {"name": "gpt-oss-20b", "model": "openai/gpt-oss-20b", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Kimi K3", "model": "moonshotai/kimi-k3", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Nemotron 3 Ultra", "model": "nvidia/nemotron-3-ultra-550b-a55b", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Deepseek V4 Pro", "model": "deepseek/deepseek-v4-pro", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
 ]
 API_URL = "https://last-translation-benchmark.vilda.net/api/llm"
 DATA_FILE = "data/submissions.json"
@@ -123,16 +125,28 @@ async def main():
     input("Do you wish to continue? (Ctrl+C to cancel)")
 
     pbar = tqdm(submissions, desc="Processing submissions")
+    pbar_desc = ""
+    pbar_tasks = set()
+
+    def update_pbar():
+        pbar.set_description(f"{pbar_desc} with {', '.join(sorted(pbar_tasks))}")
+
     for sub in pbar:
         # skip submissions which are not accepted
         if sub["status"] != "accept":
             continue
 
         sub_changed = False
-        for model in MODELS:
+        if "translations" not in sub:
+            sub["translations"] = []
+
+        pbar_desc = f"Translating #{sub['id']}"
+        update_pbar()
+
+        async def _process_model_translate(model):
             # skip if this model has already provided a translation
             if any(t["model"] == model["name"] for t in sub["translations"]):
-                continue
+                return False
 
             if sub["source_media"]:
                 mime = sub["source_media"].split(",")[0]
@@ -144,7 +158,7 @@ async def main():
                     (has_video and not model["support_video"]) or
                     (has_image and not model["support_image"])
                 ):
-                    continue
+                    return False
 
             prompt = get_prompt(sub)
             payload = {
@@ -154,8 +168,9 @@ async def main():
             if sub["source_media"]:
                 payload["source_media"] = sub["source_media"]
 
-            pbar.set_description(f"Translating #{sub['id']} with {model['model']}")
             try:
+                pbar_tasks.add(model["name"])
+                update_pbar()
                 response = await request_post_with_backoff(url=API_URL, json=payload, cookies=COOKIES)
                 if response.status_code == 200:
                     translation = response.json()
@@ -163,26 +178,29 @@ async def main():
                         "model": model["name"],
                         "translation": translation,
                     }
-                    
-                    if "translations" not in sub:
-                        sub["translations"] = []
-                    # Just add it to the list
                     sub["translations"].append(new_t)
-                    sub_changed = True
-
+                    return True
                 else:
                     print(f"  Error {response.status_code}: {response.text}")
+                    return False
             except Exception as e:
                 print(f"  Request failed: {e}")
+                return False
+            finally:
+                pbar_tasks.discard(model["name"])
+                update_pbar()
+
+        tasks = await asyncio.gather(*[_process_model_translate(model) for model in MODELS])
+        sub_changed = sub_changed or any(tasks)
 
         if sub_changed:
             # save on each finalized changed submission
-            with open(DATA_FILE, "w", encoding="utf-8") as f:
+            with open(DATA_FILE, "w") as f:
                 json.dump(submissions, f, indent=2, ensure_ascii=False)
 
 
     # save finally
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
+    with open(DATA_FILE, "w") as f:
         json.dump(submissions, f, indent=2, ensure_ascii=False)
 
 

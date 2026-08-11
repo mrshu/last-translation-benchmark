@@ -154,7 +154,6 @@ llm_whitelist = {
     "Gemini 3.1 Pro",
     "Gemini 3.5 Flash Lite",
     "GPT-5.4-mini",
-    "Deepseek V4 Pro",
 }
 
 model_whitelist = {
