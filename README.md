@@ -68,6 +68,9 @@ We welcome bugreports, hands-on, and research contributions.
 AI-generated PRs are fine as long as you verify everything and take ownership of the changes.
 This effort is organized by a collective of researchers from ETH Zurich, JHU, CUNI, UvA, KIT, and many others.
 Reach out to [last-translation-benchmark@vilda.net](mailto:last-translation-benchmark@vilda.net) with inquiries.
+Please do not reach out about the status of your pending submissions.
+To speed up the review process, you can invite other speakers of your languages who can review your submissions or nominate yourself to be a reviewer.
+
 
 ## Citation
 
