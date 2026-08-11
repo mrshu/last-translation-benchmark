@@ -600,13 +600,14 @@ async def admin_download_submissions(user: CurrentUser):
 def _submission_matches_scope(submission: dict, review_langs: set[str]) -> bool:
     if not review_langs:
         return True
-    langs_lower = {lang.lower() for lang in review_langs}
-    langs_lower.add("English")
     source_lang = submission["source_lang"]
     target_lang = submission["target_lang"]
     return (
-        any(source_lang in lang or lang in source_lang for lang in langs_lower) or
-        any(target_lang in lang or lang in target_lang for lang in langs_lower)
+        (any(source_lang in lang or lang in source_lang for lang in review_langs) and "English" in target_lang)
+        or
+        (any(target_lang in lang or lang in target_lang for lang in review_langs) and "English" in source_lang)
+        or
+        ("English" in source_lang and "English" in target_lang)
     )
 
 

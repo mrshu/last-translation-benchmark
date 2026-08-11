@@ -11,7 +11,7 @@ os.chdir(os.path.dirname(os.path.abspath(__file__))+"/..")
 from last_translation_benchmark.utils import get_config
 
 MODELS = [
-    {"name": "Gemma 4", "model": "google/gemma-4-31b-it", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
+    {"name": "Gemma 4", "model": "google/gemma-4-31b-it", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
     {"name": "Llama 4 Maverick", "model": "meta-llama/llama-4-maverick", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "GPT-5.4 Mini", "model": "openai/gpt-5.4-mini", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "Claude Haiku 4.5", "model": "anthropic/claude-haiku-4.5", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
@@ -116,8 +116,9 @@ async def main():
     with open(DATA_FILE, "r") as f:
         submissions = json.load(f)
 
-    text_count = estimate_tokens(" ".join([get_prompt(sub) for sub in submissions if sub["status"] == "accept"]))
-    print(f"Total tokens: {text_count}")
+    prompts = [get_prompt(sub) for sub in submissions if sub["status"] == "accept"]
+    text_count = estimate_tokens(" ".join(prompts))
+    print(f"Avg tokens for translation: {text_count/len(prompts):.1f}")
     for model in MODELS:
         print(f"Cost for {model['model']:<40} ${model_price_per_token(model["model"], text_count):.4f}")
 

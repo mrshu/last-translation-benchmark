@@ -107,6 +107,8 @@ async def main():
 
     text_count_verifier = estimate_tokens(" ".join(prompts_verifier))
     text_count_judge = estimate_tokens(" ".join(prompts_judge))
+    print(f"Avg tokens for verifier prompt: {text_count_verifier/len(prompts_verifier):.1f}")
+    print(f"Avg tokens for judge prompt: {text_count_judge/len(prompts_judge):.1f}")
     print(f"Total tokens (verifier): {text_count_verifier}")
     for model in MODELS_VERIFIERS:
         print(f"Cost for {model['model']:<40} ${model_price_per_token(model['model'], text_count_verifier):.4f}")
@@ -126,9 +128,14 @@ async def main():
     for sub in pbar:
         if sub["status"] != "accept":
             continue
+
+        # skip items that have source media for now
+        if sub["source_media"]:
+            continue
+
         
         # take 10% of submissions, randomly
-        if 0.1 < random.Random(f"{sub["id"]}|{0}").random():
+        if 0.1 < random.Random(sub["id"]).random():
             continue
 
         if not sub["source_text"] and sub["source_media"]:
