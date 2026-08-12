@@ -28,7 +28,8 @@ for submission in data_submissions:
             # already exists in the submissions file
             if any(mt_obj["model"] == model for mt_obj in submission["translations"]):
                 continue
-            
+
+            print("Adding", model)
             submission["translations"].append({
                 "model": model,
                 "translation": translation,

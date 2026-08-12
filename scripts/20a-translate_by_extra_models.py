@@ -1,7 +1,7 @@
 import json
 import os
 import urllib.parse
-from tqdm import tqdm
+import tqdm
 import asyncio
 import utils
 import os
@@ -88,7 +88,11 @@ async def main():
 
     input("Do you wish to continue? (Ctrl+C to cancel)")
 
-    pbar = tqdm(submissions, desc="Processing submissions")
+    pbar = tqdm.tqdm(
+        submissions,
+        bar_format="{desc}{bar}[{percentage:3.0f}%, {elapsed}<{remaining}]",
+        ascii="  ",
+    )
     pbar_desc = ""
     pbar_tasks = set()
 

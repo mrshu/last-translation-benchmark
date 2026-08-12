@@ -602,10 +602,15 @@ def _submission_matches_scope(submission: dict, review_langs: set[str]) -> bool:
         return True
     source_lang = submission["source_lang"]
     target_lang = submission["target_lang"]
+
+    source_lang_mine = any(source_lang in lang or lang in source_lang for lang in review_langs)
+    target_lang_mine = any(target_lang in lang or lang in target_lang for lang in review_langs)
     return (
-        (any(source_lang in lang or lang in source_lang for lang in review_langs) and "English" in target_lang)
+        (source_lang_mine and "English" in target_lang)
         or
-        (any(target_lang in lang or lang in target_lang for lang in review_langs) and "English" in source_lang)
+        (target_lang_mine and "English" in source_lang)
+        or
+        (source_lang_mine and target_lang_mine)
         or
         ("English" in source_lang and "English" in target_lang)
     )

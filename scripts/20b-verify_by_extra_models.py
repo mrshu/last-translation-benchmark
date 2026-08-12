@@ -84,7 +84,11 @@ async def main():
 
     input("Do you wish to continue? (Ctrl+C to cancel)")
 
-    pbar = tqdm.tqdm(submissions, desc="Processing submissions")
+    pbar = tqdm.tqdm(
+        submissions,
+        bar_format="{desc}{bar}[{percentage:3.0f}%, {elapsed}<{remaining}]",
+        ascii="  ",
+    )
     pbar_desc = ""
     pbar_tasks = set()
 
@@ -109,7 +113,7 @@ async def main():
             continue
         
         # take 10% of submissions randomly for now
-        if 0.1 < random.Random(sub["id"]).random():
+        if 0.2 < random.Random(sub["id"]).random():
             continue
 
         if not sub["source_text"] and sub["source_media"]:

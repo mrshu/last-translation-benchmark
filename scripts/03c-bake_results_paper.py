@@ -167,6 +167,7 @@ llm_whitelist = {
     "GPT-5.4-mini",
 }
 
+
 model_whitelist = {
     "human",
     "Gemma 4",
@@ -190,7 +191,9 @@ model_whitelist = {
     "GemmaX2-28-9B",
     "HY-MT2",
     "Seed-X-PPO-7B",
-    "NLLB-200",
+    "NLLB 3.3B",
+    "Command A Translate",
+    "NLLB 54B",
 }
 
 all_keys = {
@@ -200,7 +203,7 @@ all_keys = {
 }
 
 data_out["model_results"] = {
-    model.replace("human", "Human"): {
+    model.replace("human", "Human").replace("Cohere ", ""): {
         key: statistics.mean(results[key]) if key in results else None
         for key in all_keys
     }
