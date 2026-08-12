@@ -32,12 +32,17 @@ data_out["user_counts"] = {k: len(v) for k, v in user_counts.items()}
 
 # language distribution
 language_counts = collections.Counter()
+language_counts_simple = collections.Counter()
 for submission in data_submissions:
+    if submission["status"] != "accept":
+        continue
     language_counts[submission["source_lang"].strip()] += 1
     language_counts[submission["target_lang"].strip()] += 1
-
+    language_counts_simple[submission["source_lang"].split("(")[0].strip()] += 1
+    language_counts_simple[submission["target_lang"].split("(")[0].strip()] += 1
 
 data_out["language_counts"] = dict(language_counts.most_common())
+data_out["language_count_simple"] = dict(language_counts_simple.most_common())
 
 def date_to_delta(date_str):
     # subtract fom 2026-05-01
@@ -195,7 +200,7 @@ all_keys = {
 }
 
 data_out["model_results"] = {
-    model: {
+    model.replace("human", "Human"): {
         key: statistics.mean(results[key]) if key in results else None
         for key in all_keys
     }

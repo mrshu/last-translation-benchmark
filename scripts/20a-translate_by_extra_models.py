@@ -1,10 +1,9 @@
 import json
 import os
 import urllib.parse
-import requests
 from tqdm import tqdm
-import tiktoken
 import asyncio
+import utils
 import os
 os.chdir(os.path.dirname(os.path.abspath(__file__))+"/..")
 
@@ -37,7 +36,8 @@ MODELS = [
     # {"name": "Minimax M3", "model": "minimax/minimax-m3", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
     # {"name": "GLM 5.2", "model": "z-ai/glm-5.2", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
 ]
-API_URL = "https://last-translation-benchmark.vilda.net/api/llm"
+# use direct API access to avoid Forpsi throttling
+API_URL = "https://quest.ms.mff.cuni.cz/ltb/api/llm"
 DATA_FILE = "data/submissions.json"
 
 COOKIES = {
@@ -74,53 +74,17 @@ def get_prompt(sub):
         
     return prompt
 
-def model_price_per_token(model_name: str, tokens: int) -> float:
-    resp = requests.get("https://openrouter.ai/api/v1/models")
-    resp.raise_for_status()
-    models = resp.json().get("data", [])
-    
-    model = next((m for m in models if m["id"] == model_name), None)
-    if model is None:
-        raise ValueError(f"Model '{model_name}' unrecognized by OpenRouter.")
-        
-    # OpenRouter returns pricing as strings representing cost per token.
-    price_per_token_input = float(model["pricing"]["prompt"])
-    price_per_token_output = float(model["pricing"]["completion"])
-
-    return tokens * price_per_token_input + tokens * price_per_token_output
-
-
-def estimate_tokens(text: str) -> int:
-    encoder = tiktoken.get_encoding("cl100k_base")
-    return len(encoder.encode(text))
-
-
-async def request_post_with_backoff(**kwargs):
-    delay = 1
-    await asyncio.sleep(0.5)
-    for _ in range(3):
-        response = requests.post(**kwargs)
-        if response.status_code == 200:
-            return response
-        elif response.status_code == 429:
-            print(f"Rate limited. Retrying in {delay} seconds...")
-        else:
-            raise Exception(f"Request failed with status {response.status_code}: {response.text}")
-        await asyncio.sleep(delay)
-        delay *= 2
-
-    raise Exception(f"Request failed after 3 retries")
-
 
 async def main():
     with open(DATA_FILE, "r") as f:
         submissions = json.load(f)
 
     prompts = [get_prompt(sub) for sub in submissions if sub["status"] == "accept"]
-    text_count = estimate_tokens(" ".join(prompts))
+    text_count = utils.estimate_tokens(" ".join(prompts))
     print(f"Avg tokens for translation: {text_count/len(prompts):.1f}")
     for model in MODELS:
-        print(f"Cost for {model['model']:<40} ${model_price_per_token(model["model"], text_count):.4f}")
+        price_input, price_output = utils.model_price_per_token(model["model"])
+        print(f"Cost for {model['model']:<40} ${price_input * text_count + price_output * text_count:.4f}")
 
     input("Do you wish to continue? (Ctrl+C to cancel)")
 
@@ -171,7 +135,7 @@ async def main():
             try:
                 pbar_tasks.add(model["name"])
                 update_pbar()
-                response = await request_post_with_backoff(url=API_URL, json=payload, cookies=COOKIES)
+                response = await utils.request_post_with_backoff(url=API_URL, json=payload, cookies=COOKIES)
                 if response.status_code == 200:
                     translation = response.json()
                     new_t = {
