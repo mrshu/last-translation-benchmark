@@ -116,7 +116,7 @@ async def main():
     for model in MODELS_VERIFIERS:
         print(f"Cost for {model['model']:<40} ${model_price_per_token(model['model'], text_count_judge):.4f}")
 
-    # input("Do you wish to continue? (Ctrl+C to cancel)")
+    input("Do you wish to continue? (Ctrl+C to cancel)")
 
     pbar = tqdm.tqdm(submissions, desc="Processing submissions")
     pbar_desc = ""
