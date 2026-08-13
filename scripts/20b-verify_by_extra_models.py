@@ -241,6 +241,19 @@ async def main():
             sub_changed = sub_changed or any(tasks)
             return sub_changed
 
+        # choose only unique MTs
+        # translations_to_mt_i = {}
+        # for mt_i, mt_obj in enumerate(sub["translations"]):
+        #     if mt_obj["translation"] not in translations_to_mt_i:
+        #         translations_to_mt_i[mt_obj["translation"]] = mt_i
+        # print(f"We have {len(sub['translations'])} translations, {len(translations_to_mt_i)} unique translations")
+        # tasks = await asyncio.gather(*[
+        #     _process_model_all(mt_obj)
+        #     for mt_obj_i, mt_obj in enumerate(sub["translations"])
+        #     if mt_obj_i in translations_to_mt_i.values()
+        # ])
+
+        # full:
         tasks = await asyncio.gather(*[_process_model_all(mt_obj) for mt_obj in sub["translations"]])
         sub_changed = any(tasks)
 

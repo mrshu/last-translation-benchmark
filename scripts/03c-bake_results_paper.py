@@ -167,7 +167,6 @@ llm_whitelist = {
     "GPT-5.4-mini",
 }
 
-
 model_whitelist = {
     "human",
     "Gemma 4",

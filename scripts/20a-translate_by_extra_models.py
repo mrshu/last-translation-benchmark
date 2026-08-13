@@ -1,3 +1,4 @@
+import collections
 import json
 import os
 import urllib.parse
@@ -97,19 +98,21 @@ async def main():
     pbar_tasks = set()
 
     def update_pbar():
-        pbar.set_description(f"{pbar_desc} with {', '.join(sorted(pbar_tasks))}")
+        model_agg = collections.defaultdict(list)
+        for model_mt, task in pbar_tasks:
+            model_agg[model_mt].append(task)
+        model_agg = list(model_agg.items())
+        model_agg.sort(key=lambda x: len(x[1]), reverse=True)
+        pbar.set_description(f"{pbar_desc} with {', '.join(f'{model} ({len(tasks)})' for model, tasks in model_agg)}")
 
-    for sub in pbar:
+    async def process_sub(sub) -> bool:
         # skip submissions which are not accepted
         if sub["status"] != "accept":
-            continue
+            return False
 
         sub_changed = False
         if "translations" not in sub:
             sub["translations"] = []
-
-        pbar_desc = f"Translating #{sub['id']}"
-        update_pbar()
 
         async def _process_model_translate(model):
             # skip if this model has already provided a translation
@@ -137,7 +140,7 @@ async def main():
                 payload["source_media"] = sub["source_media"]
 
             try:
-                pbar_tasks.add(model["name"])
+                pbar_tasks.add((model["name"], sub["id"]))
                 update_pbar()
                 response = await utils.request_post_with_backoff(url=API_URL, json=payload, cookies=COOKIES)
                 if response.status_code == 200:
@@ -155,17 +158,28 @@ async def main():
                 print(f"  Request failed: {e}")
                 return False
             finally:
-                pbar_tasks.discard(model["name"])
+                pbar_tasks.discard((model["name"], sub["id"]))
                 update_pbar()
 
         tasks = await asyncio.gather(*[_process_model_translate(model) for model in MODELS])
         sub_changed = sub_changed or any(tasks)
 
+        return sub_changed
+
+    # chunk to multiple submissions at a time to avoid overloading the API
+    CHUNK_SIZE = 20
+    for chunk_i in range(0, len(submissions), CHUNK_SIZE):
+        sub_chunk = submissions[chunk_i:chunk_i+CHUNK_SIZE]
+
+        pbar_desc = f"Translating #{sub_chunk[0]["id"]}--#{sub_chunk[-1]["id"]}"
+        update_pbar()
+        sub_changed = any(await asyncio.gather(*[process_sub(sub) for sub in sub_chunk]))
         if sub_changed:
             # save on each finalized changed submission
             with open(DATA_FILE, "w") as f:
                 json.dump(submissions, f, indent=2, ensure_ascii=False)
 
+        pbar.update(CHUNK_SIZE)
 
     # save finally
     with open(DATA_FILE, "w") as f:
