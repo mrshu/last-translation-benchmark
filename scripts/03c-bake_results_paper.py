@@ -136,7 +136,7 @@ WHITELIST_LLM = {
     "Gemma 4",
     "Gemini 3.1 Pro",
     "Gemini 3.5 Flash Lite",
-    "GPT-5.4-mini",
+    "GPT-5.4 Mini",
 }
 
 WHITELIST_MT = {

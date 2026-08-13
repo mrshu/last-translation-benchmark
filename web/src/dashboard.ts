@@ -32,9 +32,9 @@ $(async () => {
         }
         $('#dashboard-body').html(data.rows.map((row) => `
             <tr>
-              <td style="padding:8px 6px; border-bottom:1px solid #f1f5f9;">${escHtml(row.name)}</td>
-              <td style="padding:8px 6px; border-bottom:1px solid #f1f5f9;">${escHtml(row.affiliation)}</td>
-              <td style="padding:8px 6px; border-bottom:1px solid #f1f5f9; text-align:right;">${row.accepted_submissions}</td>
+              <td style="padding: 3px; border-bottom:1px solid #f1f5f9;">${escHtml(row.name)}</td>
+              <td style="padding: 3px; border-bottom:1px solid #f1f5f9;">${escHtml(row.affiliation)}</td>
+              <td style="padding: 3px; border-bottom:1px solid #f1f5f9; text-align:right;">${row.accepted_submissions}</td>
             </tr>
         `).join(''));
     } catch {
