@@ -5,6 +5,7 @@ rsync -azP --filter=":- .gitignore" --exclude .git/ . ltb:/home/zouhar/last-tran
 rsync -azP ltb:/home/zouhar/last-translation-benchmark/data/db.sqlite data/
 rsync -azP ltb:/home/zouhar/submissions.json data/
 
+nohup python3 server --host-public "https://last-translation-benchmark.vilda.net" --host "0.0.0.0" --port 80 &
 python3 server --host-public "https://last-translation-benchmark.vilda.net" --host "0.0.0.0" --port 80
 
 # extract submissions and users and pull locally

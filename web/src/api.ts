@@ -310,8 +310,12 @@ export function updateAdminReviewScope(uid: number, review_langs: string[]) {
     return apiCall<AdminUser>('POST', `api/admin/users/${uid}/review-scope`, { review_langs });
 }
 
-export function sendAdminReviewReminder(uid: number) {
-    return apiCall<AdminUser>('POST', `api/admin/users/${uid}/send-review-reminder`, {});
+export function prepareAdminReviewReminder(uid: number) {
+    return apiCall<{ email_body: string, last_review_reminder: string | null }>('GET', `api/admin/users/${uid}/prepare-review-reminder`);
+}
+
+export function sendAdminReviewReminder(uid: number, email_body: string) {
+    return apiCall<AdminUser>('POST', `api/admin/users/${uid}/send-review-reminder`, { email_body });
 }
 
 export function addComment(id: number, comment: string) {

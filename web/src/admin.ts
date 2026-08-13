@@ -2,7 +2,7 @@ import './assets/style.css';
 import $ from 'jquery';
 import {
     getMe, getCookie, getAdminOverview, deleteAdminUser,
-    adjustAdminQuota, updateAdminRoles, updateAdminReviewScope, sendAdminReviewReminder, renderRoleSwitcher, AdminUser, AdminOverview
+    adjustAdminQuota, updateAdminRoles, updateAdminReviewScope, sendAdminReviewReminder, prepareAdminReviewReminder, renderRoleSwitcher, AdminUser, AdminOverview
 } from './api';
 
 import { esc, showToast, accessDenied, renderHeaderStatus } from './utils';
@@ -104,7 +104,7 @@ function renderTable(users: AdminUser[]): void {
             <td class="total-cell" style="text-align:right">${u.total_accepted}&nbsp;/&nbsp;${u.total_submitted}</td>
             <td>
               <div class="action-btns">
-                <button class="act-btn act-mail" data-uid="${u.id}" title="Send reviewing reminder">R</button>
+                <button class="act-btn act-mail" data-uid="${u.id}" title="Send email">E</button>
                 <button class="act-btn act-delete" data-uid="${u.id}" title="Remove user">✕</button>
               </div>
             </td>
@@ -196,13 +196,40 @@ function renderTable(users: AdminUser[]): void {
             alert('Cannot send: user has notifications disabled');
             return;
         }
-        const lastSent = (u.last_review_reminder || 'Never').split("T")[0];
-        if (!confirm(`Last reminder sent: ${lastSent}.\nSend reviewing reminder now?`)) return;
+
         try {
-            const res = await sendAdminReviewReminder(uid);
-            u.last_review_reminder = res.last_review_reminder;
-            applyFilter();
-            showToast('Review reminder sent');
+            const prep = await prepareAdminReviewReminder(uid);
+            let lastSent = 'Never';
+            if (prep.last_review_reminder) {
+                const date = prep.last_review_reminder.split("T")[0];
+                const daysAgo = Math.floor((Date.now() - new Date(prep.last_review_reminder).getTime()) / (1000 * 3600 * 24));
+                lastSent = `${daysAgo} days ago (${date})`;
+            }
+
+            const modalHtml = `
+                <div id="email-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:9999;">
+                    <div style="background:white; padding:20px; border-radius:2px; width:80%; max-width:600px; display:flex; flex-direction:column; gap:10px;">
+                        <textarea id="email-body" style="width:100%; height:300px; padding:10px; font-family:monospace; background-color: #eee;">${esc(prep.email_body)}</textarea>
+                        <div style="display:flex; gap:10px;">
+                            <span style="margin:0; width: 400px; padding-top: 5px; display: inline-block; float: left;">Last reminder sent: ${lastSent}</span>
+                            <button id="email-cancel" class="btn btn-success">Cancel</button>
+                            <button id="email-send" class="btn btn-success">Send Email</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            $('body').append(modalHtml);
+
+            $('#email-cancel').on('click', () => $('#email-modal').remove());
+            $('#email-send').on('click', async () => {
+                const customBody = $('#email-body').val() as string;
+                $('#email-modal').remove();
+                try {
+                    await sendAdminReviewReminder(uid, customBody);
+                    showToast('Review reminder sent');
+                } catch (e) { alert(e); }
+            });
+
         } catch (e) { alert(e); }
     });
 }
