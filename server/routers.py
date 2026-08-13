@@ -393,10 +393,10 @@ async def public_dashboard():
 
     language_counts = {}
     for s in submissions:
-        lang_src = s.get("source_lang")
+        lang_src = s["source_lang"].split("(")[0]
         if lang_src:
             language_counts[lang_src] = language_counts.get(lang_src, 0) + 1
-        lang_tgt = s.get("target_lang")
+        lang_tgt = s["target_lang"].split("(")[0]
         if lang_tgt:
             language_counts[lang_tgt] = language_counts.get(lang_tgt, 0) + 1
 

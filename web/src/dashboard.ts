@@ -17,12 +17,15 @@ $(async () => {
 
     try {
         const data = await getPublicDashboard();
+
+        const languages = data.languages.filter(x => x[1] > 1).map(x => escHtml(x[0]).replace(" ", "&nbsp;").replace("(", "").replace(")", "") + ` (${x[1]})`).join(', ');
+        const languages_singular = data.languages.filter(x => x[1] === 1).length;
         
         $('#dashboard-stats').html(`
             <div style="flex-wrap: wrap; display: flex; gap: 12px; text-align: justify;">
                 <div><strong>Total Submissions:</strong> ${data.total_submissions}</div>
                 <div><strong>Contributors:</strong> ${data.total_authors}</div>
-                <div style="flex-basis: 100%;"><strong>Languages:</strong> ${data.languages.map(x=> escHtml(x[0]).replace(" ", "&nbsp;").replace("(", "").replace(")", "") + ` (${x[1]})`).join(', ')}</div>
+                <div style="flex-basis: 100%;"><strong>Languages:</strong> ${languages}${languages_singular > 0 ? ` and ${languages_singular} languages with a single submission` : ''}</div>
             </div>
         `);
 
