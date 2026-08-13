@@ -126,38 +126,10 @@ plt.show()
 data_out["status_counts"] = dict(status_counts.most_common())
 
 # number of quota_used per all submissions
-data_out["quota_per_submission"] = f"{sum(x["quota_used"] for x in data_users if x["quota_used"]) / len(data_submissions):.1f}"
-
-# compute per model results
+data_out["quota_per_submission"] = sum(x["quota_used"] for x in data_users if x["quota_used"]) / len(data_submissions)
 
 
-data_models = collections.defaultdict(lambda: collections.defaultdict(list))
-
-with open("computed/autometrics_cache.json", "r") as f:
-    data_autometrics_cache = json.load(f)
-for submission in data_submissions:
-    human_translation = [x for x in submission["translations"] if x["model"] == "human"][0]["translation"]
-    for entry in submission["translations"]:
-        autometrics_key = f"{submission['source_lang']}_#_{submission['target_lang']}_#_{submission['source_text']}_#_{entry['translation']}_#_{human_translation}"
-        if autometrics_key in data_autometrics_cache:
-            for metric, score in data_autometrics_cache[autometrics_key].items():
-                if score is not None:
-                    data_models[entry["model"]]["AUTOMETRIC: " + metric].append(score)
-        if "verified" in entry:
-            data_models[entry["model"]]["VERIFIER: interactive"].append(all(entry["verified"]))
-        for verifier, results in entry.get("verified_extra", {}).items():
-            if all(x is not None for x in results):
-                data_models[entry["model"]]["VERIFIER: " + verifier].append(all(results))
-        for verifier, result in entry.get("judge_extra", {}).items():
-            if result is not None:
-                data_models[entry["model"]]["JUDGE: " + verifier].append(result)
-
-# fake for now
-for model, results in data_models.items():
-    results["HUMAN: standalone"] = [70.0]
-    results["HUMAN: with rules"] = [50.0]
-
-llm_whitelist = {
+WHITELIST_LLM = {
     "interactive",
     "Qwen 3.7 Flash",
     "Qwen 3.7 Plus",
@@ -167,7 +139,7 @@ llm_whitelist = {
     "GPT-5.4-mini",
 }
 
-model_whitelist = {
+WHITELIST_MT = {
     "human",
     "Gemma 4",
     "Gemini 2.5 Flash",
@@ -195,10 +167,90 @@ model_whitelist = {
     "NLLB 54B",
 }
 
+
+# compute per model results
+data_models = collections.defaultdict(lambda: collections.defaultdict(list))
+data_models_selfbias = collections.defaultdict(lambda: {"llm": [], "verifier": []})
+with open("computed/autometrics_cache.json", "r") as f:
+    data_autometrics_cache = json.load(f)
+for submission in data_submissions:
+    human_translation = [x for x in submission["translations"] if x["model"] == "human"][0]["translation"]
+
+    model_ranking_verifier = collections.defaultdict(dict)
+    model_ranking_llm = collections.defaultdict(dict)
+    for entry in submission["translations"]:
+        autometrics_key = f"{submission['source_lang']}_#_{submission['target_lang']}_#_{submission['source_text']}_#_{entry['translation']}_#_{human_translation}"
+        if autometrics_key in data_autometrics_cache:
+            for metric, score in data_autometrics_cache[autometrics_key].items():
+                if score is not None:
+                    data_models[entry["model"]]["AUTOMETRIC: " + metric].append(score)
+        if "verified" in entry:
+            data_models[entry["model"]]["VERIFIER: interactive"].append(all(entry["verified"]))
+        for verifier, results in entry.get("verified_extra", {}).items():
+            if all(x is not None for x in results):
+                data_models[entry["model"]]["VERIFIER: " + verifier].append(all(results))
+                model_ranking_verifier[entry["model"]][verifier] = all(results)
+        for verifier, result in entry.get("judge_extra", {}).items():
+            if result is not None:
+                data_models[entry["model"]]["JUDGE: " + verifier].append(result)
+                model_ranking_llm[entry["model"]][verifier] = result
+
+    # compute self-bias according to https://arxiv.org/abs/2509.26600
+    model_ranking_verifier = {
+        k_mt: {k_llm: v for k_llm, v in v.items() if k_llm in WHITELIST_LLM}
+        for k_mt, v in model_ranking_verifier.items()
+        if k_mt in WHITELIST_LLM and k_mt in model_ranking_verifier[k_mt]
+    }
+    model_ranking_llm = {
+        k_mt: {k_llm: v for k_llm, v in v.items() if k_llm in WHITELIST_LLM}
+        for k_mt, v in model_ranking_llm.items()
+        if k_mt in WHITELIST_LLM and k_mt in model_ranking_llm[k_mt]
+    }
+    models = model_ranking_verifier.keys() & model_ranking_llm.keys()
+    if len(models) >= 3:
+        for model in models:
+            ranking_by_all_verifier = {m: statistics.mean([model_ranking_verifier[m][m2] for m2 in model_ranking_verifier if m2 in model_ranking_verifier[m] if m2 != model]) for m in model_ranking_verifier}
+            ranking_by_all_verifier = {k: v for k, v in sorted(ranking_by_all_verifier.items(), key=lambda item: item[1], reverse=True)}
+            ranking_by_all_verifier = {k: rank for rank, (k, v) in enumerate(ranking_by_all_verifier.items(), start=1)}
+            ranking_by_all_llm = {m: statistics.mean([model_ranking_llm[m][m2] for m2 in model_ranking_llm if m2 in model_ranking_llm[m] if m2 != model]) for m in model_ranking_llm}
+            ranking_by_all_llm = {k: v for k, v in sorted(ranking_by_all_llm.items(), key=lambda item: item[1], reverse=True)}
+            ranking_by_all_llm = {k: rank for rank, (k, v) in enumerate(ranking_by_all_llm.items(), start=1)}
+
+            ranking_by_self_verifier = {m: model_ranking_verifier[m][model] for m in model_ranking_verifier if model in model_ranking_verifier[m]}
+            ranking_by_self_verifier = {k: v for k, v in sorted(ranking_by_self_verifier.items(), key=lambda item: item[1], reverse=True)}
+            ranking_by_self_verifier = {k: rank for rank, (k, v) in enumerate(ranking_by_self_verifier.items(), start=1)}
+            ranking_by_self_llm = {m: model_ranking_llm[m][model] for m in model_ranking_llm if model in model_ranking_llm[m]}
+            ranking_by_self_llm = {k: v for k, v in sorted(ranking_by_self_llm.items(), key=lambda item: item[1], reverse=True)}
+            ranking_by_self_llm = {k: rank for rank, (k, v) in enumerate(ranking_by_self_llm.items(), start=1)}
+            data_models_selfbias[model]["verifier"].append((ranking_by_all_verifier[model] - ranking_by_self_verifier[model])/len(ranking_by_self_verifier))
+            data_models_selfbias[model]["llm"].append((ranking_by_all_llm[model] - ranking_by_self_llm[model])/len(ranking_by_self_llm))
+
+data_out["model_selfbias"] = {
+    model: {
+        "verifier": statistics.mean(results["verifier"]) if results["verifier"] else None,
+        "llm": statistics.mean(results["llm"]) if results["llm"] else None,
+    }
+    for model, results in data_models_selfbias.items()
+}
+
+# TODO: fake for now
+for model, results in data_models.items():
+    results["HUMAN: standalone"] = [70.0]
+    results["HUMAN: with rules"] = [50.0]
+
+
+for model, results in data_models.items():
+    # only LLMs can be evaluated
+    if model not in WHITELIST_LLM:
+        continue
+
+    # compute how model ranks itself
+    
+
 all_keys = {
     k for results in data_models.values()
     for k in results.keys()
-    if (not (k.startswith("VERIFIER: ")) and (not k.startswith("JUDGE: "))) or any(k.endswith(k_allowed) for k_allowed in llm_whitelist)
+    if (not (k.startswith("VERIFIER: ")) and (not k.startswith("JUDGE: "))) or any(k.endswith(k_allowed) for k_allowed in WHITELIST_LLM)
 }
 
 data_out["model_results"] = {
@@ -207,7 +259,7 @@ data_out["model_results"] = {
         for key in all_keys
     }
     for model, results in data_models.items()
-    if model in model_whitelist
+    if model in WHITELIST_MT
     # if any(len(result) >= 50 for result in results.values())
 }
                 

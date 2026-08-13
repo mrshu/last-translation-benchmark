@@ -272,6 +272,8 @@ async def api_call_llm(req: APILLMReq, user: CurrentUser):
         )
     except openrouter.errors.TooManyRequestsResponseError:
         raise HTTPException(status_code=429, detail=f"Too many requests to OpenRouter/{req.model}. Please try again later.")
+    except openrouter.errors.NotFoundResponseError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     
     return result
 
