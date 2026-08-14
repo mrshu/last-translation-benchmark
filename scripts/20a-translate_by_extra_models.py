@@ -5,6 +5,7 @@ import urllib.parse
 import tqdm
 import asyncio
 import utils
+import random
 import os
 os.chdir(os.path.dirname(os.path.abspath(__file__))+"/..")
 
@@ -30,12 +31,13 @@ MODELS = [
     {"name": "Kimi K3", "model": "moonshotai/kimi-k3", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "Nemotron 3 Ultra", "model": "nvidia/nemotron-3-ultra-550b-a55b", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "Deepseek V4 Pro", "model": "deepseek/deepseek-v4-pro", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
-    # decided not to use these models
-    # {"name": "Gemma 4 a4b", "model": "google/gemma-4-26b-a4b-it", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
-    # {"name": "Gemini 3.6 Flash", "model": "google/gemini-3.6-flash", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
-    # {"name": "Claude Opus 4.8", "model": "anthropic/claude-opus-4.8", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
-    # {"name": "Minimax M3", "model": "minimax/minimax-m3", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
-    # {"name": "GLM 5.2", "model": "z-ai/glm-5.2", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    
+    # special instructions privilege
+    {"name": "Gemma 4", "model": "google/gemma-4-31b-it", "privilege": "ONE", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
+    {"name": "Gemma 4", "model": "google/gemma-4-31b-it", "privilege": "ALL", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
+    {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite", "privilege": "ONE", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
+    {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite", "privilege": "ALL", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
+
 ]
 # use direct API access to avoid Forpsi throttling
 API_URL = "https://quest.ms.mff.cuni.cz/ltb/api/llm"
@@ -85,6 +87,10 @@ async def main():
     print(f"Avg tokens for translation: {text_count/len(prompts):.1f}")
     for model in MODELS:
         price_input, price_output = utils.model_price_per_token(model["model"])
+
+        if "privilege" in model:
+            model["name"] = f"PRIVILEGE-{model["privilege"]}: {model["name"]}"
+
         print(f"Cost for {model['model']:<40} ${price_input * text_count + price_output * text_count:.4f}")
 
     input("Do you wish to continue? (Ctrl+C to cancel)")
@@ -132,6 +138,14 @@ async def main():
                     return False
 
             prompt = get_prompt(sub)
+            if "privilege" in model:
+                verification_rules = []
+                if model["privilege"] == "ONE":
+                    verification_rules.append(random.Random(sub["id"]).choice(sub["verification_rules"])["value"])
+                elif model["privilege"] == "ALL":
+                    verification_rules.extend([rule["value"] for rule in sub["verification_rules"]])
+
+                prompt += "\nYour translation will be checked by the following rules, so make sure to follow them: " + "; ".join(verification_rules)
             payload = {
                 "model": model["model"],
                 "prompt": prompt,
@@ -167,7 +181,7 @@ async def main():
         return sub_changed
 
     # chunk to multiple submissions at a time to avoid overloading the API
-    CHUNK_SIZE = 40
+    CHUNK_SIZE = 20
     for chunk_i in range(0, len(submissions), CHUNK_SIZE):
         sub_chunk = submissions[chunk_i:chunk_i+CHUNK_SIZE]
 

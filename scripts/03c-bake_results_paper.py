@@ -33,17 +33,24 @@ data_out["user_counts"] = {k: len(v) for k, v in user_counts.items()}
 # language distribution
 language_counts = collections.Counter()
 language_counts_simple = collections.Counter()
+language_counts_pairs = collections.Counter()
 for submission in data_submissions:
     if submission["status"] != "accept":
         continue
-    language_counts[submission["source_lang"].strip()] += 1
-    language_counts[submission["target_lang"].strip()] += 1
-    language_counts_simple[submission["source_lang"].split("(")[0].strip()] += 1
-    language_counts_simple[submission["target_lang"].split("(")[0].strip()] += 1
+    lang1, lang2 = submission["source_lang"].strip(), submission["target_lang"].strip()
+    lang1_simple, lang2_simple = lang1.split("(")[0].strip(), lang2.split("(")[0].strip()
+    language_counts_pairs[lang1_simple + " - " + lang2_simple] += 1
+    language_counts[lang1_simple] += 1
+    language_counts[lang2_simple] += 1
+
+    language_counts_simple[lang1_simple] += 1
+    language_counts_simple[lang2_simple] += 1
 
 data_out["language_counts"] = dict(language_counts.most_common())
 data_out["language_count_simple"] = dict(language_counts_simple.most_common())
+data_out["language_count_simple_pairs"] = dict(language_counts_pairs.most_common())
 
+# progress over time figure
 def date_to_delta(date_str):
     # subtract fom 2026-05-01
     # 2026-05-26 23:23
@@ -123,10 +130,14 @@ plt.gcf().patch.set_alpha(0)
 plt.savefig("computed/collection_progress.svg")
 plt.show()
 
-data_out["status_counts"] = dict(status_counts.most_common())
 
-# number of quota_used per all submissions
+data_out["status_counts"] = dict(status_counts.most_common())
 data_out["quota_per_submission"] = sum(x["quota_used"] for x in data_users if x["quota_used"]) / len(data_submissions)
+data_out["proportion_multimodal"] = statistics.mean([x["source_media"] is not None for x in data_submissions if x["status"] == "accept"])
+data_out["proportion_instructions"] = statistics.mean([x["source_instructions"] is not None for x in data_submissions if x["status"] == "accept"])
+data_out["source_text_chars"] = statistics.mean([len(x["source_text"]) for x in data_submissions if x["status"] == "accept" and "English" in x["source_lang"]])
+data_out["source_text_words"] = statistics.mean([len(x["source_text"].split()) for x in data_submissions if x["status"] == "accept" and "English" in x["source_lang"]])
+data_out["verification_rules"] = statistics.mean([len(x["verification_rules"]) for x in data_submissions if x["status"] == "accept"])
 
 
 WHITELIST_LLM = {

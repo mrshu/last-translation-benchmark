@@ -10,7 +10,7 @@ SUBJECT = "Last Translation Benchmark - Contribute"
 BODY_TEMPLATE = """Dear {name},
 
 We noticed you have registered for the Last Translation Benchmark project but haven't made any submissions yet. 
-So far we have collected 800+ submissions across many languages. The project will soon be going public, and we would love for you to contribute!
+So far we have collected 3000+ submissions across many languages. The project will soon be going public, and we would love if you could be on the paper!
 
 You can login and contribute using the following link:
 
