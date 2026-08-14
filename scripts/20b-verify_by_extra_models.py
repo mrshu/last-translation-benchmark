@@ -11,6 +11,7 @@ os.chdir(os.path.dirname(os.path.abspath(__file__))+"/..")
 
 from last_translation_benchmark.utils import get_config
 
+
 MODELS_VERIFIERS = [
     {"name": "Qwen 3.7 Flash", "model": "qwen/qwen3.7-flash"},
     {"name": "Qwen 3.7 Plus", "model": "qwen/qwen3.7-plus"},
@@ -113,7 +114,7 @@ async def main():
             continue
         
         # take 10% of submissions randomly for now
-        if 0.2 < random.Random(sub["id"]).random():
+        if 0.4 < random.Random(sub["id"]).random():
             continue
 
         if not sub["source_text"] and sub["source_media"]:
@@ -241,21 +242,21 @@ async def main():
             sub_changed = sub_changed or any(tasks)
             return sub_changed
 
-        # choose only unique MTs
-        if _UNIQUE_ONLY := False:
-            translations_to_mt_i = {}
-            for mt_i, mt_obj in enumerate(sub["translations"]):
-                if mt_obj["translation"] not in translations_to_mt_i:
-                    translations_to_mt_i[mt_obj["translation"]] = mt_i
-            print(f"We have {len(sub['translations'])} translations, {len(translations_to_mt_i)} unique translations")
-            tasks = await asyncio.gather(*[
-                _process_model_all(mt_obj)
-                for mt_obj_i, mt_obj in enumerate(sub["translations"])
-                if mt_obj_i in translations_to_mt_i.values()
-            ])
-        else:
-            tasks = await asyncio.gather(*[_process_model_all(mt_obj) for mt_obj in sub["translations"]])
-        sub_changed = any(tasks)
+        # choose only unique MTs first
+        translations_to_mt_i = {}
+        for mt_i, mt_obj in enumerate(sub["translations"]):
+            if mt_obj["translation"] not in translations_to_mt_i:
+                translations_to_mt_i[mt_obj["translation"]] = mt_i
+
+        print(f"We have {len(sub['translations'])} translations, {len(translations_to_mt_i)} unique translations")
+        tasks_unique = await asyncio.gather(*[
+            _process_model_all(mt_obj)
+            for mt_obj_i, mt_obj in enumerate(sub["translations"])
+            if mt_obj_i in translations_to_mt_i.values()
+        ])
+        
+        tasks_all = await asyncio.gather(*[_process_model_all(mt_obj) for mt_obj in sub["translations"]])
+        sub_changed = any(tasks_unique) or any(tasks_all)
 
         if sub_changed:
             with open(DATA_FILE, "w") as f:

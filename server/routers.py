@@ -555,8 +555,8 @@ async def admin_prepare_review_reminder(uid: int, user: CurrentUser):
         if len(feasible) > 10:
             ex_text += f"\n...and {len(feasible) - 10} more submissions."
         body = (
-            f"Dear {target["name"]},\n\nThank you for your contributions so far! We would like to ask you to review the following examples in the Last Translation Benchmark. "
-            f"As a small incentive, active and quality reviewers are prioritized in the coauthor list ranking. Review link: {host_url}/review\n\n{ex_text}\n\n"
+            f"Dear {target['name']},\n\nThank you for your contributions so far! We would like to ask you to review a few examples in the Last Translation Benchmark made by other contributors. "
+            f"As a small incentive, active and quality reviewers are prioritized in the coauthor list ranking. Review link: {host_url}/review?user={target['username']}&token={target['magic_token']}\n\n{ex_text}\n\n"
             "Please reach out with any questions.\nThank you, the LTB team"
         )
     else:

@@ -136,7 +136,6 @@ function renderTable(users: AdminUser[]): void {
         try {
             const res = await updateAdminRoles(uid, newRoles);
             u.roles = res.roles;
-            applyFilter();
             showToast('Roles updated');
         } catch (e) {
             alert(e);
@@ -151,7 +150,8 @@ function renderTable(users: AdminUser[]): void {
         try {
             await deleteAdminUser(uid);
             allUsers = allUsers.filter(u => u.id !== uid);
-            applyFilter();
+            $(this).closest('tr').remove();
+            $(`.sugg-row-${uid}`).remove();
             showToast('User deleted');
         } catch (e) { alert(e); }
     });
@@ -166,7 +166,10 @@ function renderTable(users: AdminUser[]): void {
         try {
             const res = await adjustAdminQuota(uid, delta);
             if (u) { u.quota = res.quota; u.quota_used = res.quota_used; }
-            applyFilter();
+            const parent = $(this).parent();
+            const usedStr = u?.roles.includes('api') ? u!.quota_used.toFixed(1) : u!.quota_used.toString();
+            parent[0].firstChild!.nodeValue = `${usedStr}\u00A0/\u00A0`;
+            $(this).text(res.quota);
             showToast('Quota updated');
         } catch (e) { alert(e); }
     });
@@ -183,7 +186,7 @@ function renderTable(users: AdminUser[]): void {
         try {
             const res = await updateAdminReviewScope(uid, langs);
             u.review_langs = res.review_langs;
-            applyFilter();
+            $(this).html(res.review_langs && res.review_langs.length ? esc(res.review_langs.join(',')) : '<span class="muted">all</span>');
             showToast('Language scope updated');
         } catch (e) { alert(e); }
     });
@@ -238,11 +241,19 @@ function applyFilter(): void {
     const q = ($('#filter-input').val() as string).toLowerCase().trim();
     const role = $('#role-filter').val() as string;
     const nonzero = $('#nonzero-filter').is(':checked');
+    const accepted = $('#accepted-filter').is(':checked');
     const filtered = allUsers.filter(u => {
-        const matchesRole = !role || u.roles.includes(role);
+        let highestRole = '';
+        if (u.roles.includes('admin')) highestRole = 'admin';
+        else if (u.roles.includes('reviewer')) highestRole = 'reviewer';
+        else if (u.roles.includes('contributor')) highestRole = 'contributor';
+        else if (u.roles.includes('api')) highestRole = 'api';
+
+        const matchesRole = !role || highestRole === role;
         const matchesQuery = !q || u.username.toLowerCase().includes(q) || (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q);
         const matchesNonzero = !nonzero || ((u.total_submitted || 0) > 0);
-        return matchesRole && matchesQuery && matchesNonzero;
+        const matchesAccepted = !accepted || ((u.total_accepted || 0) > 0);
+        return matchesRole && matchesQuery && matchesNonzero && matchesAccepted;
     });
     $('#filtered-count').text(`Total: ${filtered.length} users`);
     renderTable(filtered);
@@ -263,4 +274,5 @@ $(async () => {
     $('#filter-input').on('input', applyFilter);
     $('#role-filter').on('change', applyFilter);
     $('#nonzero-filter').on('change', applyFilter);
+    $('#accepted-filter').on('change', applyFilter);
 });
