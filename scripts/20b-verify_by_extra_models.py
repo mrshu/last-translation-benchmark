@@ -13,8 +13,8 @@ from last_translation_benchmark.utils import get_config
 
 
 MODELS_VERIFIERS = [
-    {"name": "Qwen 3.7 Flash", "model": "qwen/qwen3.7-flash"},
-    {"name": "Qwen 3.7 Plus", "model": "qwen/qwen3.7-plus"},
+    # {"name": "Qwen 3.7 Flash", "model": "qwen/qwen3.7-flash"},
+    # {"name": "Qwen 3.7 Plus", "model": "qwen/qwen3.7-plus"},
     {"name": "Gemma 4", "model": "google/gemma-4-31b-it"},
     {"name": "Gemini 3.1 Pro", "model": "google/gemini-3.1-pro-preview"},
     {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite"},
@@ -114,7 +114,7 @@ async def main():
             continue
         
         # take 50% of submissions randomly for now
-        if 0.5 < random.Random(sub["id"]).random():
+        if 0.2 < random.Random(sub["id"]).random():
             continue
 
         if not sub["source_text"] and sub["source_media"]:

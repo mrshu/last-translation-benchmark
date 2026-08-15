@@ -182,7 +182,7 @@ async def main():
         return sub_changed
 
     # chunk to multiple submissions at a time to avoid overloading the API
-    CHUNK_SIZE = 10
+    CHUNK_SIZE = 1
     for chunk_i in range(0, len(submissions), CHUNK_SIZE):
         sub_chunk = submissions[chunk_i:chunk_i+CHUNK_SIZE]
 

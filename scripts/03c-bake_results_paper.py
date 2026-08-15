@@ -207,8 +207,6 @@ for submission in data_submissions:
             for metric, score in data_autometrics_cache[autometrics_key].items():
                 if score is not None:
                     data_models[entry["model"]]["AUTOMETRIC: " + metric].append(score)
-        if "verified" in entry:
-            data_models[entry["model"]]["VERIFIER: interactive"].append(all(entry["verified"]))
         for verifier, results in entry.get("verified_extra", {}).items():
             if all(x is not None for x in results):
                 data_models[entry["model"]]["VERIFIER: " + verifier].append(all(results))
@@ -273,8 +271,8 @@ all_metrics = {
     if (not (k.startswith("VERIFIER: ")) and (not k.startswith("JUDGE: "))) or any(k.endswith(k_allowed) for k_allowed in WHITELIST_LLM)
 }
 data_out["model_results"] = {
-    model.replace("human", "Human").replace("Cohere ", ""): {
-        key: statistics.mean(results[key]) if key in results else None
+    model.replace("human", "Human"): {
+        key: results.get(key, [])
         for key in all_metrics
     }
     for model, results in data_models.items()
@@ -287,9 +285,9 @@ for metric1, metric2 in itertools.product(all_metrics, all_metrics):
     scores1 = []
     scores2 = []
     for model in data_out["model_results"]:
-        if data_out["model_results"][model][metric1] is not None and data_out["model_results"][model][metric2] is not None:
-            scores1.append(data_out["model_results"][model][metric1])
-            scores2.append(data_out["model_results"][model][metric2])
+        if data_out["model_results"][model][metric1] and data_out["model_results"][model][metric2]:
+            scores1.append(statistics.mean(data_out["model_results"][model][metric1]))
+            scores2.append(statistics.mean(data_out["model_results"][model][metric2]))
 
     tau, p_value = scipy.stats.kendalltau(scores1, scores2)
     kind1 = metric1.split(": ")[0]
@@ -303,7 +301,39 @@ for metric1, metric2 in itertools.product(all_metrics, all_metrics):
         # TODO: temporary mask
         tau = 0
     metrics_pairwise_tau[f"{kind1} ||| {kind2}"].append(tau)
+
+# do stability
+for metric in all_metrics:
+    if metric.startswith("HUMAN: "):
+        continue
+    scores1_all = [
+        data_out["model_results"][model][metric]
+        for model in data_out["model_results"]
+        if data_out["model_results"][model][metric] is not None
+    ]
+    scores1 = [
+        statistics.mean(scores)
+        for scores in scores1_all
+    ]
+    for _ in range(10):
+        scores2 = [
+            statistics.mean(random.sample(scores, math.ceil(len(scores)*0.1)))
+            for scores in scores1_all
+        ]
+        tau, p_value = scipy.stats.kendalltau(scores1, scores2)
+        metrics_pairwise_tau[f"STABILITY ||| {metric.split(': ')[0]}"].append(tau)
 data_out["metrics_pairwise_tau"] = {k: statistics.mean(v) for k, v in metrics_pairwise_tau.items()}
+
+# average scroes
+
+data_out["model_results"] = {
+    model: {
+        key: statistics.mean(results[key]) if results[key] else None
+        for key in all_metrics
+    }
+    for model, results in data_models.items()
+    if model in WHITELIST_MT
+}
 
 with open("computed/bake_results.json", "w") as f:
     json.dump(data_out, f, indent=2, ensure_ascii=False)

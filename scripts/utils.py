@@ -17,6 +17,12 @@ async def request_post_with_backoff(**kwargs):
         elif response.status_code == 429:
             print(response.text)
             print(f"Rate limited. Retrying in {delay} seconds...")
+        elif response.status_code == 418:
+            # teapot response, mostly validation, will not be fixed
+            # return new 200 response with text "teapot"
+            response.status_code = 200
+            response._content = b'"teapot"'
+            return response
         else:
             raise Exception(f"Request failed with status {response.status_code}: {response.text}")
         delay *= 2
