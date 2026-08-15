@@ -31,6 +31,11 @@ $(async () => {
             return;
         }
         $('#sen-info').text(currentUser.username);
+
+        if (currentUser.roles.includes('admin')) {
+            $('#admin-mode-container').css('display', 'flex');
+            $('#admin-mode-checkbox').on('change', loadSubmissions);
+        }
     } catch {
         window.location.href = 'index.html';
         return;
@@ -188,11 +193,13 @@ async function loadSubmissions(): Promise<void> {
     const targetLangVal = String($('#filter-target-lang').val() ?? '');
     const userFilter = String($('#filter-user').val() ?? '');
     
-    let source_langs = sourceLangVal === 'my_langs' ? [...(currentUser?.review_langs || []), 'English'] : (sourceLangVal ? [sourceLangVal] : []);
-    let target_langs = targetLangVal === 'my_langs' ? [...(currentUser?.review_langs || []), 'English'] : (targetLangVal ? [targetLangVal] : []);
+    let source_langs = sourceLangVal ? [sourceLangVal] : [];
+    let target_langs = targetLangVal ? [targetLangVal] : [];
+
+    const mode = (currentUser?.roles.includes('admin') && $('#admin-mode-checkbox').is(':checked')) ? 'admin' : 'reviewer';
 
     try {
-        allSugs = await getSubmissions('reviewer', {
+        allSugs = await getSubmissions(mode, {
             status: curFilter as 'pending' | 'accepted_or_returned' | 'accepted' | 'returned' | 'all',
             source_langs: source_langs,
             target_langs: target_langs,
@@ -211,20 +218,13 @@ function populateFilters(): void {
     const targetLangVal = String($('#filter-target-lang').val() ?? '');
     const userVal = String($('#filter-user').val() ?? '');
 
-    const sourceLangs = [...new Set([...(sourceLangVal && sourceLangVal !== 'my_langs' ? [sourceLangVal] : []), ...allSugs.map(s => s.source_lang)])].sort();
-    const targetLangs = [...new Set([...(targetLangVal && targetLangVal !== 'my_langs' ? [targetLangVal] : []), ...allSugs.map(s => s.target_lang)])].sort();
+    const sourceLangs = [...new Set([...(sourceLangVal ? [sourceLangVal] : []), ...allSugs.map(s => s.source_lang)])].sort();
+    const targetLangs = [...new Set([...(targetLangVal ? [targetLangVal] : []), ...allSugs.map(s => s.target_lang)])].sort();
     const users = [...new Set([...(userVal ? [userVal] : []), ...allSugs.map(s => s.username)])].sort();
 
-    let mySourceLangsOption = '';
-    let myTargetLangsOption = '';
-    if (currentUser?.roles.includes('admin')) {
-        mySourceLangsOption = `<option value="my_langs" ${sourceLangVal === 'my_langs' ? 'selected' : ''}>My languages only</option>`;
-        myTargetLangsOption = `<option value="my_langs" ${targetLangVal === 'my_langs' ? 'selected' : ''}>My languages only</option>`;
-    }
-
-    $('#filter-source-lang').html('<option value="">All Source Languages</option>' + mySourceLangsOption +
+    $('#filter-source-lang').html('<option value="">All Source Languages</option>' +
         sourceLangs.map(l => `<option value="${escHtml(l)}"${l === sourceLangVal ? ' selected' : ''}>${escHtml(l)}</option>`).join(''));
-    $('#filter-target-lang').html('<option value="">All Target Languages</option>' + myTargetLangsOption +
+    $('#filter-target-lang').html('<option value="">All Target Languages</option>' +
         targetLangs.map(l => `<option value="${escHtml(l)}"${l === targetLangVal ? ' selected' : ''}>${escHtml(l)}</option>`).join(''));
     const userDisplay = (u: string) => {
         const existingOption = $(`#filter-user option[value="${u}"]`);

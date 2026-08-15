@@ -170,7 +170,7 @@ export function verify(
 }
 
 export function getSubmissions(
-    mode: 'contributor' | 'reviewer' = 'contributor',
+    mode: 'contributor' | 'reviewer' | 'admin' = 'contributor',
     filters?: {
         status?: 'pending' | 'accepted_or_returned' | 'accepted' | 'returned' | 'all';
         source_langs?: string[];

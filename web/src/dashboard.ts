@@ -18,7 +18,7 @@ $(async () => {
     try {
         const data = await getPublicDashboard();
 
-        const languages = data.languages.filter(x => x[1] > 1).map(x => escHtml(x[0]).replace(" ", "&nbsp;").replace("(", "").replace(")", "") + ` (${x[1]})`).join(', ');
+        const languages = data.languages.filter(x => x[1] > 1).map(x => escHtml(x[0].replace(" ", "&nbsp;").replace("(", "").replace(")", "")) + ` (${x[1]})`).join(', ');
         const languages_singular = data.languages.filter(x => x[1] === 1).length;
         
         $('#dashboard-stats').html(`

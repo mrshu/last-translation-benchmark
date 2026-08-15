@@ -266,7 +266,6 @@ async def api_call_llm(req: APILLMReq, user: CurrentUser):
     user["quota_used"] = quota_used + 0.1
     await save_user(user)
 
-    # catch errors.TooManyRequestsResponseError
     try:    
         result = await call_llm_multimodal(
             prompt=req.prompt, model=req.model, source_media=req.source_media
@@ -277,6 +276,8 @@ async def api_call_llm(req: APILLMReq, user: CurrentUser):
         raise HTTPException(status_code=429, detail=f"Too many requests to Cohere/{req.model}. Please try again later.")
     except openrouter.errors.ResponseValidationError:
         raise HTTPException(status_code=418, detail=f"Response validation error from OpenRouter/{req.model}.")
+    except openrouter.errors.badrequestresponse_error.BadRequestResponseError as exc:
+        raise HTTPException(status_code=418, detail=f"Bad response to OpenRouter/{req.model}. {exc}")
     except openrouter.errors.NotFoundResponseError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     
@@ -407,10 +408,10 @@ async def public_dashboard():
 
     language_counts = {}
     for s in submissions:
-        lang_src = s["source_lang"].split("(")[0]
+        lang_src = s["source_lang"].split("(")[0].strip()
         if lang_src:
             language_counts[lang_src] = language_counts.get(lang_src, 0) + 1
-        lang_tgt = s["target_lang"].split("(")[0]
+        lang_tgt = s["target_lang"].split("(")[0].strip()
         if lang_tgt:
             language_counts[lang_tgt] = language_counts.get(lang_tgt, 0) + 1
 
@@ -702,14 +703,14 @@ MODEL_LIBRARY = [
     {"name": "GPT-5.4 Mini", "fn": functools.partial(translate_openrouter, model="openai/gpt-5.4-mini"), "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "Deepseek V4 Pro", "fn": functools.partial(translate_openrouter, model="deepseek/deepseek-v4-pro"), "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "Claude Sonnet 4.5", "fn": functools.partial(translate_openrouter, model="anthropic/claude-sonnet-4.5"), "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Command A+", "fn": functools.partial(translate_openrouter, model="cohere/command-a-plus-05-2026"), "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "TinyAya Global", "fn": functools.partial(translate_openrouter, model="cohere/tiny-aya-global"), "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    # {"name": "Command A+", "fn": functools.partial(translate_openrouter, model="cohere/command-a-plus-05-2026"), "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "Gemini 3.5 Flash", "fn": functools.partial(translate_openrouter, model="google/gemini-3.5-flash"), "support_image": False, "support_audio": True, "support_video": True, "support_textonly": False},
     {"name": "Gemini 2.5 Pro", "fn": functools.partial(translate_openrouter, model="google/gemini-2.5-pro"), "support_image": False, "support_audio": True, "support_video": True, "support_textonly": False},
     {"name": "Qwen 3.7 Plus", "fn": functools.partial(translate_openrouter, model="qwen/qwen3.7-plus"), "support_image": False, "support_audio": False, "support_video": True, "support_textonly": False},
     {"name": "Voxtral Small", "fn": functools.partial(translate_openrouter, model="mistralai/voxtral-small-24b-2507"), "support_image": False, "support_audio": True, "support_video": False, "support_textonly": False},
+    {"name": "Claude Haiku 4.5", "fn": functools.partial(translate_openrouter, model="anthropic/claude-haiku-4.5"), "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     # not used anymore
-    # {"name": "Claude Haiku 4.5", "fn": functools.partial(translate_openrouter, model="anthropic/claude-haiku-4.5"), "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     # {"name": "Command A", "fn": functools.partial(translate_openrouter, model="cohere/command-a"), "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     # {"name": "Gemini 2.5 Flash", "fn": functools.partial(translate_openrouter, model="google/gemini-2.5-flash"), "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
 ]
@@ -896,6 +897,22 @@ async def create_submission(req: SubmissionReq, user: CurrentUser):
     ):
         raise HTTPException(status_code=400, detail="Field missing")
 
+    user_submissions = await db_get_submissions(user["id"])
+    accepted_count = sum(1 for s in user_submissions if s.get("status") == "accept")
+    non_accepted_count = len(user_submissions) - accepted_count
+
+    if accepted_count >= 60:
+        raise HTTPException(
+            status_code=400,
+            detail="You already have more than 60 accepted submissions. To ensure diversity, we'll prefer submissions from other sources, which we would appreciate if you could help us review (get in touch)."
+        )
+    
+    if non_accepted_count >= accepted_count + 20:
+        raise HTTPException(
+            status_code=400,
+            detail="You currently have many non-reviewed submissions. Please wait until those are reviewed before submitting more."
+        )
+
     submission = {
         "user_id": user["id"],
         "username": user["username"],
@@ -984,7 +1001,7 @@ async def delete_submission_endpoint(sid: int, user: CurrentUser):
 @router.get("/api/submissions")
 async def list_submissions(
     user: CurrentUser,
-    mode: Literal["contributor", "reviewer"] = "contributor",
+    mode: Literal["contributor", "reviewer", "admin"] = "contributor",
     status: Literal["pending", "accepted_or_returned", "accepted", "returned", "all"] = "all",
     source_langs: Annotated[list[str] | None, Query()] = None,
     target_langs: Annotated[list[str] | None, Query()] = None,
@@ -992,10 +1009,10 @@ async def list_submissions(
 ):
     source_langs = source_langs or []
     target_langs = target_langs or []
-    if mode == "reviewer" and "reviewer" in user["roles"]:
+    if mode in ("reviewer", "admin") and "reviewer" in user["roles"]:
         rows = await db_get_submissions()
         review_langs = {lang for lang in user["review_langs"]}
-        is_admin = "admin" in user["roles"]
+        is_admin = mode == "admin" and "admin" in user["roles"]
         
         if review_langs and not is_admin:
             rows = [s for s in rows if _submission_matches_scope(s, review_langs)]
