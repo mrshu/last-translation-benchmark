@@ -24,6 +24,7 @@ MODELS = [
     # {"name": "Gemini 2.5 Pro", "model": "google/gemini-2.5-pro", "support_image": False, "support_audio": True, "support_video": True, "support_textonly": False},
     # {"name": "Voxtral Small", "model": "mistralai/voxtral-small-24b-2507", "support_image": False, "support_audio": True, "support_video": False, "support_textonly": False},
 
+    {"name": "GPT-5.6 Sol", "model": "openai/gpt-5.6-sol", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "Qwen 3.7 Plus", "model": "qwen/qwen3.7-plus", "support_image": False, "support_audio": False, "support_video": True, "support_textonly": False},
     {"name": "Qwen 3.7 Flash", "model": "qwen/qwen3.7-flash", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
     {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
@@ -37,7 +38,8 @@ MODELS = [
     {"name": "Gemma 4", "model": "google/gemma-4-31b-it", "privilege": "ALL", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
     {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite", "privilege": "ONE", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
     {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite", "privilege": "ALL", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
-
+    {"name": "GPT-5.4 Mini", "model": "openai/gpt-5.4-mini", "privilege": "ONE", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "GPT-5.4 Mini", "model": "openai/gpt-5.4-mini", "privilege": "ALL", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
 ]
 # use direct API access to avoid Forpsi throttling
 API_URL = "https://quest.ms.mff.cuni.cz/ltb/api/llm"
@@ -93,7 +95,7 @@ async def main():
 
         print(f"Cost for {model['model']:<40} ${price_input * text_count + price_output * text_count:.4f}")
 
-    input("Do you wish to continue? (Ctrl+C to cancel)")
+    #input("Do you wish to continue? (Ctrl+C to cancel)")
 
     pbar = tqdm.tqdm(
         submissions,

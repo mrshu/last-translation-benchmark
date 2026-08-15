@@ -2,7 +2,7 @@
 
 import collections
 import json
-
+import random
 import statistics
 import os
 import utils_fig
@@ -156,6 +156,7 @@ WHITELIST_MT = {
     "Gemini 2.5 Flash",
     "Llama 4 Maverick", 
     "GPT-5.4 Mini",
+    "GPT-5.6 Sol",
     "Claude Haiku 4.5",
     "Claude Sonnet 4.5",
     "Cohere Command A", 
@@ -176,6 +177,9 @@ WHITELIST_MT = {
     "NLLB 3.3B",
     "Command A Translate",
     "NLLB 54B",
+    "PRIVILEGE-ALL: Gemma 4",
+    "PRIVILEGE-ALL: Gemini 3.5 Flash Lite",
+    "PRIVILEGE-ALL: GPT-5.4 Mini",
 }
 
 
@@ -217,6 +221,10 @@ for submission in data_submissions:
         for k_mt, v in model_ranking_llm.items()
         if k_mt in WHITELIST_LLM and k_mt in model_ranking_llm[k_mt]
     }
+    # shuffle dicts to avoid bias in ranking
+    model_ranking_verifier = {k: dict(sorted(v.items(), key=lambda _: random.random())) for k, v in model_ranking_verifier.items()}
+    model_ranking_llm = {k: dict(sorted(v.items(), key=lambda _: random.random())) for k, v in model_ranking_llm.items()}
+
     models = model_ranking_verifier.keys() & model_ranking_llm.keys()
     if len(models) >= 3:
         for model in models:

@@ -83,7 +83,7 @@ async def main():
         price_input, price_output = utils.model_price_per_token(model["model"])
         print(f"Cost for {model['model']:<40} ${price_input * text_count_judge + price_output * text_count_judge * 3:.4f}")
 
-    input("Do you wish to continue? (Ctrl+C to cancel)")
+    #input("Do you wish to continue? (Ctrl+C to cancel)")
 
     pbar = tqdm.tqdm(
         submissions,
@@ -113,7 +113,7 @@ async def main():
         if len(sub["verification_rules"]) > 2:
             continue
         
-        # take 10% of submissions randomly for now
+        # take 50% of submissions randomly for now
         if 0.4 < random.Random(sub["id"]).random():
             continue
 
@@ -126,6 +126,9 @@ async def main():
         update_pbar()
 
         async def _process_model_all(mt_obj) -> bool:
+            if mt_obj["model"].startswith("SKIP: "):
+                return False
+            
             sub_changed = False
             # verifier section
             if "verified_extra" not in mt_obj:

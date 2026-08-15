@@ -186,6 +186,22 @@
       width: 80px;
       max-width: 80px;
     }
+
+    .admin-input-number::-webkit-outer-spin-button,
+    .admin-input-number::-webkit-inner-spin-button,
+    .admin-input-number {
+      -webkit-appearance: none;
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
+    .admin-input-number {
+      width: 40px;
+      height: 28px;
+      padding: 2px;
+      margin-left: -5px;
+    }
+
   </style>
 </head>
 
@@ -226,12 +242,14 @@
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h2 style="margin:0">Users</h2>
           <div style="display:flex; gap:8px; align-items:center;">
-            <label style="font-size:0.85em; display:flex; align-items:center; gap:4px; color:#475569; cursor:pointer; margin-top: -10px;">
-              <input type="checkbox" id="nonzero-filter" style="margin-top: -3px;"> Submissions&nbsp;>0
+            <label style="font-size:0.85em; display:flex; align-items:center; gap:4px; color:#475569; margin-top: -10px;">
+              Accepted≥
             </label>
-            <label style="font-size:0.85em; display:flex; align-items:center; gap:4px; color:#475569; cursor:pointer; margin-top: -10px; margin-right: 10px;">
-              <input type="checkbox" id="accepted-filter" style="margin-top: -3px;"> Accepted&nbsp;>0
+            <input type="number" id="accepted-filter" class="admin-input admin-input-number" placeholder="0">
+            <label style="font-size:0.85em; display:flex; align-items:center; gap:4px; color:#475569; margin-top: -10px;">
+              Submitted≥
             </label>
+            <input type="number" id="submitted-filter" class="admin-input admin-input-number" placeholder="0">
             <select id="role-filter" class="admin-input">
               <option value="">All Roles</option>
               <option value="contributor">Contributor</option>

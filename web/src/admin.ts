@@ -62,10 +62,10 @@ function renderTable(users: AdminUser[]): void {
 
         const rolesHtml = `
             <select class="role-select admin-input" data-uid="${u.id}" style="width: 100%; padding: 2px 4px; font-size: 0.9em;">
-                <option value="" ${highestRole === '' ? 'selected' : ''}>None</option>
-                <option value="admin" ${highestRole === 'admin' ? 'selected' : ''}>admin</option>
-                <option value="reviewer" ${highestRole === 'reviewer' ? 'selected' : ''}>reviewer</option>
+                <option value="" ${highestRole === '' ? 'selected' : ''}>none</option>
                 <option value="contributor" ${highestRole === 'contributor' ? 'selected' : ''}>contributor</option>
+                <option value="reviewer" ${highestRole === 'reviewer' ? 'selected' : ''}>reviewer</option>
+                <option value="admin" ${highestRole === 'admin' ? 'selected' : ''}>admin</option>
                 <option value="API" ${highestRole === 'API' ? 'selected' : ''}>API</option>
             </select>
         `;
@@ -240,8 +240,12 @@ function renderTable(users: AdminUser[]): void {
 function applyFilter(): void {
     const q = ($('#filter-input').val() as string).toLowerCase().trim();
     const role = $('#role-filter').val() as string;
-    const nonzero = $('#nonzero-filter').is(':checked');
-    const accepted = $('#accepted-filter').is(':checked');
+    const submittedStr = $('#submitted-filter').val() as string;
+    const acceptedStr = $('#accepted-filter').val() as string;
+    const submitted = submittedStr ? parseInt(submittedStr, 10) : -1;
+    const accepted = acceptedStr ? parseInt(acceptedStr, 10) : -1;
+
+    console.log(submitted, accepted);
     const filtered = allUsers.filter(u => {
         let highestRole = '';
         if (u.roles.includes('admin')) highestRole = 'admin';
@@ -251,8 +255,8 @@ function applyFilter(): void {
 
         const matchesRole = !role || highestRole === role;
         const matchesQuery = !q || u.username.toLowerCase().includes(q) || (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q);
-        const matchesNonzero = !nonzero || ((u.total_submitted || 0) > 0);
-        const matchesAccepted = !accepted || ((u.total_accepted || 0) > 0);
+        const matchesNonzero = (u.total_submitted || 0) > submitted;
+        const matchesAccepted = (u.total_accepted || 0) > accepted;
         return matchesRole && matchesQuery && matchesNonzero && matchesAccepted;
     });
     $('#filtered-count').text(`Total: ${filtered.length} users`);
@@ -273,6 +277,6 @@ $(async () => {
 
     $('#filter-input').on('input', applyFilter);
     $('#role-filter').on('change', applyFilter);
-    $('#nonzero-filter').on('change', applyFilter);
-    $('#accepted-filter').on('change', applyFilter);
+    $('#submitted-filter').on('input', applyFilter);
+    $('#accepted-filter').on('input', applyFilter);
 });
