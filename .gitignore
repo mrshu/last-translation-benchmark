@@ -3,6 +3,7 @@ computed/
 .vscode/
 humeval/
 nohup.out
+*tmp*
 
 config.toml
 scripts/data/

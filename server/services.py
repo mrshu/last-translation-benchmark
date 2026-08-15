@@ -3,6 +3,7 @@ import base64
 import mimetypes
 import tempfile
 
+import cohere
 import httpx
 import lara_sdk
 from deep_translator import DeeplTranslator, GoogleTranslator
@@ -13,6 +14,7 @@ from .languages import LANGUAGES
 from .utils import get_config, log, retry_async
 
 OPENROUTER_CLIENT = OpenRouter(api_key=get_config("OPENROUTER_API_KEY", ""))
+COHERE_CLIENT = cohere.AsyncClientV2(api_key=get_config("COHERE_API_KEY", ""))
 
 HTTP_CLIENT = httpx.AsyncClient(timeout=10)
 LARA_CLIENT = lara_sdk.Translator(
@@ -156,22 +158,31 @@ async def translate_lara(
 
 
 @sqlite_cache(discard_none=True)
-async def call_llm(prompt: str, model: str = "google/gemini-2.5-flash") -> str:
-    # use global openrouter client
-    response = await OPENROUTER_CLIENT.chat.send_async(
-        model=model,
-        messages=[
-            {
-                "role": "user",
-                "content": prompt,
-            }
-        ],
-        seed=0,
-    )
-    content = response.choices[0].message.content
-    if content is None:
-        log(f"None LLM response: {response.choices[0]}")
-    return content  # type: ignore
+async def call_llm(prompt: str | list[dict], model: str = "google/gemini-2.5-flash") -> str | None:
+    if isinstance(prompt, str):
+        prompt = [{"role": "user", "content": prompt}]
+
+    if model in {"cohere/command-a-plus-05-2026", "cohere/tiny-aya-global"}:
+        response = await COHERE_CLIENT.chat(
+            model=model.removeprefix("cohere/"),
+            messages=prompt # type: ignore
+        )
+        response = response.message.content
+        response_text = [item.text for item in response if item.type == "text"] # type: ignore
+        if not response_text:
+            log(f"None LLM response: {response}")
+            return None
+        return response_text[0]
+    else:
+        response = await OPENROUTER_CLIENT.chat.send_async(
+            model=model,
+            messages=prompt, # type: ignore
+            seed=0,
+        )
+        content = response.choices[0].message.content
+        if content is None:
+            log(f"None LLM response: {response.choices[0]}")
+        return content  # type: ignore
 
 
 @retry_async(times=3)
@@ -203,7 +214,7 @@ async def verify_llm(
 @sqlite_cache(discard_none=True)
 async def call_llm_multimodal(
     prompt: str, model: str, source_media: str | None = None
-) -> str:
+) -> str | None:
     if not source_media:
         return await call_llm(prompt, model=model)
 
@@ -237,16 +248,8 @@ async def call_llm_multimodal(
         content.append({"type": "image_url", "image_url": {"url": source_media}})
     else:
         return await call_llm(prompt, model=model)
-
-    response = await OPENROUTER_CLIENT.chat.send_async(
-        model=model,
-        messages=[{"role": "user", "content": content}],
-    )
-    msg_content = response.choices[0].message.content
-    if msg_content is None:
-        log(f"None LLM response: {response.choices[0]}")
-    return msg_content # type: ignore
-
+    
+    return await call_llm([{"role": "user", "content": content}], model=model)
 
 async def translate_openrouter(
     text: str,
@@ -255,7 +258,7 @@ async def translate_openrouter(
     model: str,
     source_media: str| None = None,
     source_instructions: str| None = None,
-) -> str:
+) -> str | None:
     if not source_media:
         prompt = f"Translate the following text from {src_lang} to {tgt_lang}. Output only the translation and nothing else:\n{text}"
         if source_instructions:
