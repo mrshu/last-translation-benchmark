@@ -165,7 +165,6 @@ WHITELIST_MT = {
     "GPT-5.6 Terra",
     "Claude Haiku 4.5",
     "Claude Sonnet 4.5",
-    "Cohere Command A", 
     "Command A", 
     "Command A+",
     "Qwen 3.7 Plus",
