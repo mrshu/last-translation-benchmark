@@ -310,17 +310,25 @@ async def admin_overview(user: CurrentUser):
             langs |= {lang for lang in u["review_langs"]}
         else:
             langs |= user_submissions_langs.get(u_username, set()).copy()
+        langs_noenglish = langs - {"English"}
 
-        feasible = [
+        feasible_bothmatch = [
             x for x in submissions_pending
             if x["username"] != u_username and (
                 (x["source_lang"] in langs or any(lang in x["source_lang"] for lang in langs)) and
                 (x["target_lang"] in langs or any(lang in x["target_lang"] for lang in langs))
             )
         ]
-        if feasible:
+        feasible_singlematch = [
+            x for x in submissions_pending
+            if x["username"] != u_username and (
+                (x["source_lang"] in langs_noenglish or any(lang in x["source_lang"] for lang in langs_noenglish)) or
+                (x["target_lang"] in langs_noenglish or any(lang in x["target_lang"] for lang in langs_noenglish))
+            )
+        ]
+        if feasible_bothmatch:
             review_suggestions_by_user[u_username] = []
-            for f in feasible:
+            for f in feasible_bothmatch:
                 review_suggestions_by_user[u_username].append({
                     "id": f["id"],
                     "source_lang": f["source_lang"],
@@ -328,6 +336,7 @@ async def admin_overview(user: CurrentUser):
                     "username": f["username"],
                     "name": username_to_name.get(f["username"])
                 })
+            for f in feasible_singlematch:
                 covered_submissions.add(f["id"])
 
     submissions_without_reviewer = []

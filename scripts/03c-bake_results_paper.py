@@ -1,10 +1,14 @@
 # %%
 
 import collections
+import itertools
 import json
+import math
 import random
 import statistics
 import os
+
+import scipy.stats
 import utils_fig
 import matplotlib.pyplot as plt
 from datetime import datetime
@@ -256,31 +260,46 @@ data_out["model_selfbias"] = {
 for model, results in data_models.items():
     results["HUMAN: standalone"] = [70.0]
     results["HUMAN: with rules"] = [50.0]
+   
 
-
-for model, results in data_models.items():
-    # only LLMs can be evaluated
-    if model not in WHITELIST_LLM:
-        continue
-
-    # compute how model ranks itself
-    
-
-all_keys = {
+# average results across metrics
+all_metrics = {
     k for results in data_models.values()
     for k in results.keys()
     if (not (k.startswith("VERIFIER: ")) and (not k.startswith("JUDGE: "))) or any(k.endswith(k_allowed) for k_allowed in WHITELIST_LLM)
 }
-
 data_out["model_results"] = {
     model.replace("human", "Human").replace("Cohere ", ""): {
         key: statistics.mean(results[key]) if key in results else None
-        for key in all_keys
+        for key in all_metrics
     }
     for model, results in data_models.items()
     if model in WHITELIST_MT
-    # if any(len(result) >= 50 for result in results.values())
 }
-                
+
+# pairwise Kendall's tau correlation between metrics (human, autometrics, verifier, judge)
+metrics_pairwise_tau = collections.defaultdict(list)
+for metric1, metric2 in itertools.product(all_metrics, all_metrics):
+    scores1 = []
+    scores2 = []
+    for model in data_out["model_results"]:
+        if data_out["model_results"][model][metric1] is not None and data_out["model_results"][model][metric2] is not None:
+            scores1.append(data_out["model_results"][model][metric1])
+            scores2.append(data_out["model_results"][model][metric2])
+
+    tau, p_value = scipy.stats.kendalltau(scores1, scores2)
+    kind1 = metric1.split(": ")[0]
+    kind2 = metric2.split(": ")[0]
+    if kind1 == "HUMAN":
+        kind1 = metric1
+        # TODO: temporary mask
+        tau = 0
+    if kind2 == "HUMAN":
+        kind2 = metric2
+        # TODO: temporary mask
+        tau = 0
+    metrics_pairwise_tau[f"{kind1} ||| {kind2}"].append(tau)
+data_out["metrics_pairwise_tau"] = {k: statistics.mean(v) for k, v in metrics_pairwise_tau.items()}
+
 with open("computed/bake_results.json", "w") as f:
     json.dump(data_out, f, indent=2, ensure_ascii=False)
