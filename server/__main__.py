@@ -16,6 +16,7 @@ uvicorn.run(
     host=args.host,
     port=args.port,
     reload=True,
+    timeout_graceful_shutdown=1,
 )
 
 """

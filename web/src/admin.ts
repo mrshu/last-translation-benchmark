@@ -255,8 +255,8 @@ function applyFilter(): void {
 
         const matchesRole = !role || highestRole === role;
         const matchesQuery = !q || u.username.toLowerCase().includes(q) || (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q);
-        const matchesNonzero = (u.total_submitted || 0) > submitted;
-        const matchesAccepted = (u.total_accepted || 0) > accepted;
+        const matchesNonzero = (u.total_submitted || 0) >= submitted;
+        const matchesAccepted = (u.total_accepted || 0) >= accepted;
         return matchesRole && matchesQuery && matchesNonzero && matchesAccepted;
     });
     $('#filtered-count').text(`Total: ${filtered.length} users`);

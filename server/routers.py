@@ -55,7 +55,7 @@ from .services import (
     translate_openrouter,
     verify_llm,
 )
-from .utils import CONTRIBUTOR_QUOTA_DEFAULT, send_email
+from .utils import CONTRIBUTOR_QUOTA_DEFAULT, join_english, send_email
 
 router = APIRouter()
 CurrentUser = Annotated[dict, Depends(get_current_user)]
@@ -554,10 +554,12 @@ async def admin_prepare_review_reminder(uid: int, user: CurrentUser):
         ex_text = "\n".join(ex_lines)
         if len(feasible) > 10:
             ex_text += f"\n...and {len(feasible) - 10} more submissions."
+
+        
         body = (
-            f"Dear {target['name']},\n\nThank you for your contributions so far! We would like to ask you to review a few examples in the Last Translation Benchmark made by other contributors. "
+            f"Dear {target['name']},\n\nThank you for your contributions so far! We would like to ask you to review a few examples in the Last Translation Benchmark made by other contributors in {join_english(list(langs))} (or other languages you might know --- let us know). "
             f"As a small incentive, active and quality reviewers are prioritized in the coauthor list ranking. Review link: {host_url}/review?user={target['username']}&token={target['magic_token']}\n\n{ex_text}\n\n"
-            "Please reach out with any questions.\nThank you, the LTB team"
+            f"Please be thorough in your reviews and reach out with any questions.\nThank you, {user['name'].split(' ')[0]} & the LTB team"
         )
     else:
         user_langs = set()
@@ -567,14 +569,13 @@ async def admin_prepare_review_reminder(uid: int, user: CurrentUser):
                 user_langs.add(sub["target_lang"].split("(")[0].strip())
         
         user_langs.discard("English")
-        pending_langs = ", ".join(sorted(user_langs))
                 
         body = (
             f"Dear {target['name']},\n\nThank you for your contributions so far! It's taking us a while to review your Last Translation Benchmark submissions. "
-            f"We currently do not have many reviewers for {pending_langs}, and we wanted to ask if you know anyone who would be willing to submit a few examples and later review for {pending_langs} as well.\n\n"
+            f"We currently do not have many reviewers for {join_english(list(user_langs))}, and we wanted to ask if you know anyone who would be willing to submit a few examples and later review for these languages as well.\n\n"
             "Also, if you are interested in reviewing, that would be amazing! In this case, please let us know which languages you feel comfortable reviewing. "
             "If you do not know potential other reviewers and do not want to review yourself, there is no need to respond to this email.\n\n"
-            "Thank you, the LTB team"
+            f"Thank you, {user['name'].split(' ')[0]} & the LTB team"
         )
     last_reminder = await get_latest_sent_email_date(target["email"], REVIEW_REMINDER_SUBJECT)
     

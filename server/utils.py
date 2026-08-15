@@ -213,3 +213,12 @@ async def schedule_daily_notifications() -> None:
         except (OSError, RuntimeError, ValueError, KeyError) as e:
             log(f"Error in notifications schedule loop: {e}")
             await asyncio.sleep(60)
+
+
+def join_english(v) -> str:
+    """Joins a list of strings into a human-readable English list."""
+    if not v:
+        return ""
+    if len(v) == 1:
+        return v[0]
+    return f"{', '.join(v[:-1])} and {v[-1]}"
