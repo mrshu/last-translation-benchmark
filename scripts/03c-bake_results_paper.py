@@ -220,20 +220,29 @@ for submission in data_submissions:
     model_ranking_verifier = {
         k_mt: {k_llm: v for k_llm, v in v.items() if k_llm in WHITELIST_LLM}
         for k_mt, v in model_ranking_verifier.items()
-        if k_mt in WHITELIST_LLM and k_mt in model_ranking_verifier[k_mt]
+        if k_mt in WHITELIST_MT
     }
     model_ranking_llm = {
         k_mt: {k_llm: v for k_llm, v in v.items() if k_llm in WHITELIST_LLM}
         for k_mt, v in model_ranking_llm.items()
-        if k_mt in WHITELIST_LLM and k_mt in model_ranking_llm[k_mt]
+        if k_mt in WHITELIST_MT
     }
     # shuffle dicts to avoid bias in ranking
     model_ranking_verifier = {k: dict(sorted(v.items(), key=lambda _: random.random())) for k, v in model_ranking_verifier.items()}
     model_ranking_llm = {k: dict(sorted(v.items(), key=lambda _: random.random())) for k, v in model_ranking_llm.items()}
 
     models = model_ranking_verifier.keys() & model_ranking_llm.keys()
-    if len(models) >= 3:
+    if len(models) >= 2:
         for model in models:
+            if model not in model_ranking_verifier or model not in model_ranking_llm:
+                continue
+            if model not in model_ranking_verifier[model] or model not in model_ranking_llm[model]:
+                continue
+            if len(model_ranking_verifier[model]) < 2 or len(model_ranking_llm[model]) < 2:
+                continue
+            if any(len(v) < 2 for v in model_ranking_verifier.values()) or any(len(v) < 2 for v in model_ranking_llm.values()):
+                continue
+
             ranking_by_all_verifier = {m: statistics.mean([model_ranking_verifier[m][m2] for m2 in model_ranking_verifier if m2 in model_ranking_verifier[m] if m2 != model]) for m in model_ranking_verifier}
             ranking_by_all_verifier = {k: v for k, v in sorted(ranking_by_all_verifier.items(), key=lambda item: item[1], reverse=True)}
             ranking_by_all_verifier = {k: rank for rank, (k, v) in enumerate(ranking_by_all_verifier.items(), start=1)}
