@@ -32,7 +32,8 @@ def model_price_per_token(model_name: str) -> tuple[float, float]:
     
     model = next((m for m in models if m["id"] == model_name), None)
     if model is None:
-        raise ValueError(f"Model '{model_name}' unrecognized by OpenRouter.")
+        print(f"Model '{model_name}' unrecognized by OpenRouter.")
+        return (0, 0)
         
     # OpenRouter returns pricing as strings representing cost per token.
     price_per_token_input = float(model["pricing"]["prompt"])

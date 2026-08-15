@@ -127,13 +127,14 @@ async def translate_lara(
         if text or source_instructions:
             return None
 
+        temp_path = ""
         with tempfile.NamedTemporaryFile(
-            suffix=mimetypes.guess_extension(mime) or ".png"
+            suffix=mimetypes.guess_extension(mime) or ".png", delete=False
         ) as f:
             f.write(base64.b64decode(base64_data))
-            f.flush()
             temp_path = f.name
-
+            
+        try:
             resp = await asyncio.to_thread(
                 lambda: LARA_CLIENT.images.translate_text(
                     image_path=temp_path,
@@ -142,6 +143,10 @@ async def translate_lara(
                 )
             )
             return "\n".join(p.translation for p in resp.paragraphs)
+        finally:
+            if temp_path:
+                import os
+                os.remove(temp_path)
 
     if not text:
         return None
@@ -161,6 +166,9 @@ async def translate_lara(
 async def call_llm(prompt: str | list[dict], model: str = "google/gemini-2.5-flash") -> str | None:
     if isinstance(prompt, str):
         prompt = [{"role": "user", "content": prompt}]
+
+    if model == "cohere/command-a":
+        model = "cohere/command-a-03-2025"
 
     if model in {"cohere/command-a-plus-05-2026", "cohere/tiny-aya-global"}:
         response = await COHERE_CLIENT.chat(
