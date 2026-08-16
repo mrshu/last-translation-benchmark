@@ -1,5 +1,6 @@
 # %%
 
+import collections
 import json
 import os
 import copy
@@ -25,7 +26,20 @@ STYLE_CESA = """
 </style>
 """
 
-for lang1, lang2 in [("Chinese (Simplified)", "English"), ("English", "Chinese (Simplified)")]:
+submissions_perlangs = collections.defaultdict(list)
+
+for submission in submissions:
+    if submission["source_media"] is not None or submission["source_instructions"] is not None:
+        continue
+    submissions_perlangs[(submission["source_lang"], submission["target_lang"])].append(submission)
+
+submissions_perlangs = {
+    ls: submissions
+    for ls, submissions in submissions_perlangs.items()
+    if len(submissions) >= 10
+}
+
+for (lang1, lang2), submissions in submissions_perlangs.items():
     campaign_data = {
         "campaign_id": f"{lang1} -> {lang2}",
         "info": {
@@ -35,12 +49,8 @@ for lang1, lang2 in [("Chinese (Simplified)", "English"), ("English", "Chinese (
         },
         "data": []
     }
-    for submission in submissions:
-        if submission["source_lang"] != lang1 or submission["target_lang"] != lang2:
-            continue
-        if submission["source_media"] is not None or submission["source_instructions"] is not None:
-            continue
 
+    for submission in submissions:
         doc_obj = {
             "src": submission["source_text"],
             "tgt": {

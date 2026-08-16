@@ -18,7 +18,8 @@ MODELS = [
     {"name": "Claude Haiku 4.5", "model": "anthropic/claude-haiku-4.5", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "Claude Sonnet 4.5", "model": "anthropic/claude-sonnet-4.5", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "Command A", "model": "cohere/command-a", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Command A+", "model": "cohere/command-a-plus-05-2026", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
+    #hit monthly quota?
+    #{"name": "Command A+", "model": "cohere/command-a-plus-05-2026", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "TinyAya Global", "model": "cohere/tiny-aya-global", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "GPT-5.6 Terra", "model": "openai/gpt-5.6-terra", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "GPT-5.6 Luna", "model": "openai/gpt-5.6-luna", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
@@ -182,7 +183,7 @@ async def main():
         return sub_changed
 
     # chunk to multiple submissions at a time to avoid overloading the API
-    CHUNK_SIZE = 2
+    CHUNK_SIZE = 10
     for chunk_i in range(0, len(submissions), CHUNK_SIZE):
         sub_chunk = submissions[chunk_i:chunk_i+CHUNK_SIZE]
 

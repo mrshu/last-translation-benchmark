@@ -114,7 +114,7 @@ async def main():
             continue
         
         # take 50% of submissions randomly for now
-        if 0.2 < random.Random(sub["id"]).random():
+        if 1.0 < random.Random(sub["id"]).random():
             continue
 
         if not sub["source_text"] and sub["source_media"]:
@@ -163,9 +163,9 @@ async def main():
                                 continue
 
                             text_clean = res_text.strip().lower().strip(" \t\n\r.,!?\"'*").split()[-1]
-                            if text_clean == "pass":
+                            if "pass" in text_clean:
                                 results.append(True)
-                            elif text_clean == "fail":
+                            elif "fail" in text_clean:
                                 results.append(False)
                             else:
                                 print(f"  Invalid LLM response: {res_text}")

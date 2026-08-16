@@ -210,10 +210,10 @@ async def verify_llm(
     )
     if text is None:
         raise ValueError("No response from LLM. Try simplifying your input and verification rules.")
-    text_clean = text.strip().lower().strip(" \t\n\r.,!?\"'*")
-    if text_clean == "pass":
+    text_clean = text.strip().lower().strip(" \t\n\r.,!?\"'*").split()[-1]
+    if "pass" in text_clean:
         return True
-    elif text_clean == "fail":
+    elif "fail" in text_clean:
         return False
     else:
         raise ValueError(f"Invalid LLM response: {text}")
