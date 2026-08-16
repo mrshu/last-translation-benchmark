@@ -114,7 +114,7 @@ async def main():
             continue
         
         # take 50% of submissions randomly for now
-        if 1.0 < random.Random(sub["id"]).random():
+        if 0.5 < random.Random(sub["id"]).random():
             continue
 
         if not sub["source_text"] and sub["source_media"]:

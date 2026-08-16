@@ -35,6 +35,8 @@ user_counts["admins"] = set(x["username"] for x in data_users if "admin" in x["r
 
 data_out["user_counts"] = {k: len(v) for k, v in user_counts.items()}
 
+print(len([x for x in data_submissions if x["status"] == "accept"]))
+
 # language distribution
 language_counts = collections.Counter()
 language_counts_simple = collections.Counter()
@@ -112,7 +114,7 @@ plt.text(
 plt.text(
     x=delta_today,
     y=dates_pending[-1],
-    s=f"\n\n Pending: {status_counts['pending']}",
+    s=f"Pending: {status_counts['pending']}",
     ha="left", va="center",
 )
 plt.text(
@@ -241,7 +243,9 @@ for submission in data_submissions:
                 continue
             if len(model_ranking_verifier[model]) < 2 or len(model_ranking_llm[model]) < 2:
                 continue
-            if any(len(v) < 2 for v in model_ranking_verifier.values()) or any(len(v) < 2 for v in model_ranking_llm.values()):
+            if any(not [model_ranking_verifier[m][m2] for m2 in model_ranking_verifier if m2 in model_ranking_verifier[m] if m2 != model] for m in model_ranking_verifier):
+                continue
+            if any(not [model_ranking_llm[m][m2] for m2 in model_ranking_llm if m2 in model_ranking_llm[m] if m2 != model] for m in model_ranking_llm):
                 continue
 
             ranking_by_all_verifier = {m: statistics.mean([model_ranking_verifier[m][m2] for m2 in model_ranking_verifier if m2 in model_ranking_verifier[m] if m2 != model]) for m in model_ranking_verifier}
