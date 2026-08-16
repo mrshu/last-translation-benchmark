@@ -6,6 +6,7 @@ import json
 import os
 import random
 import secrets
+import statistics
 import time
 from datetime import UTC, datetime
 from typing import Annotated, Literal
@@ -666,6 +667,9 @@ def _filter_reviewer_submissions(
     source_langs: list[str],
     target_langs: list[str],
     username: str,
+    min_rules: int = 0,
+    min_pass_rate: float = 0.0,
+    min_avg_pass_rate: float = 0.0,
 ) -> list[dict]:
     if status == "pending":
         rows = [s for s in rows if s["status"] == "pending"]
@@ -689,6 +693,33 @@ def _filter_reviewer_submissions(
         ]
     if username:
         rows = [s for s in rows if s["username"] == username]
+
+    if min_rules > 0:
+        rows = [s for s in rows if len(s["verification_rules"]) >= min_rules]
+
+    if min_pass_rate > 0.0:
+        passed_rows = []
+        # find submissions with at least one rule that has a pass rate >= min_pass_rate
+        for s in rows:
+            for rule_i in range(len(s["translations"][0]["verified"])):
+                pass_rate = statistics.mean([
+                    t["verified"][rule_i] for t in s["translations"]
+                    if len(t["verified"]) > rule_i
+                ])
+                if pass_rate >= min_pass_rate:
+                    passed_rows.append(s)
+                    break
+
+        rows = passed_rows
+
+    if min_avg_pass_rate > 0.0:
+        passed_rows = []
+        for s in rows:
+            avg_checks = statistics.mean([v for t in s["translations"] for v in t["verified"]])
+            if avg_checks >= min_avg_pass_rate:
+                passed_rows.append(s)
+        rows = passed_rows
+
     return rows
 
 
@@ -1007,6 +1038,9 @@ async def list_submissions(
     source_langs: Annotated[list[str] | None, Query()] = None,
     target_langs: Annotated[list[str] | None, Query()] = None,
     username: str = "",
+    min_rules: int = 0,
+    min_pass_rate: float = 0.0,
+    min_avg_pass_rate: float = 0.0,
 ):
     source_langs = source_langs or []
     target_langs = target_langs or []
@@ -1024,6 +1058,9 @@ async def list_submissions(
             source_langs=source_langs,
             target_langs=target_langs,
             username=username,
+            min_rules=min_rules,
+            min_pass_rate=min_pass_rate,
+            min_avg_pass_rate=min_avg_pass_rate,
         )
         
         # prevent non-admins from listing accepted submissions

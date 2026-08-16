@@ -26,6 +26,7 @@
       <li><strong>Pass rate</strong>: At most two automatic translations can pass your set of verification rules.</li>
       <li><strong>Atomicity of your rule</strong>: Each rule should only be checking for one conceptual issue. If you find yourself listing various separable conditions into a single rule, use multiple rules instead.</li>
       <li><strong>Granularity of your rule</strong>: Your verification rule should be specific enough to catch wrong translations but flexible enough to pass any reasonable correct phrasing.</li>
+      <li>Accepted submissions typically have 1 or 2 focused rules rather than many generic ones. Good submissions also don’t contain rules that are passed by all or most models.</li>
     </ul>
     <h3>Examples</h3>
     <div><strong>Example:</strong> The Chinese text <em>“小猫在地上撒娇。”</em> is translated as <em>“The kitten is acting coquettishly on the ground.”</em> which translates the concept of “playful cuteness” to “flirtatious cuteness”.<br><strong>Verification rule:</strong> In this context, “撒娇” should be equivalent to acting cute and adorable, instead of having any flirtatious or sexual sense.</div>

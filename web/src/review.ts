@@ -35,6 +35,7 @@ $(async () => {
         if (currentUser.roles.includes('admin')) {
             $('#admin-mode-container').css('display', 'flex');
             $('#admin-mode-checkbox').on('change', loadSubmissions);
+            $('#admin-filters-container').css('display', 'flex');
         }
     } catch {
         window.location.href = 'index.html';
@@ -56,7 +57,7 @@ $(async () => {
     });
 
     // Language / user filter selects
-    $('#filter-source-lang, #filter-target-lang, #filter-user').on('change', loadSubmissions);
+    $('#filter-source-lang, #filter-target-lang, #filter-user, #filter-min-rules, #filter-min-pass-rate, #filter-min-avg-pass-rate').on('change', loadSubmissions);
 
     $('#sen-list').on('input', '.comment-input', function () {
         const id = parseInt(String($(this).closest('.sug-item').attr('id')?.replace('sug-', '')));
@@ -195,6 +196,10 @@ async function loadSubmissions(): Promise<void> {
     
     let source_langs = sourceLangVal ? [sourceLangVal] : [];
     let target_langs = targetLangVal ? [targetLangVal] : [];
+    
+    const minRulesVal = parseInt(String($('#filter-min-rules').val() || '0'));
+    const minPassRateVal = parseFloat(String($('#filter-min-pass-rate').val() || '0'))/100;
+    const minAvgPassRateVal = parseFloat(String($('#filter-min-avg-pass-rate').val() || '0'))/100;
 
     const mode = (currentUser?.roles.includes('admin') && $('#admin-mode-checkbox').is(':checked')) ? 'admin' : 'reviewer';
 
@@ -204,6 +209,9 @@ async function loadSubmissions(): Promise<void> {
             source_langs: source_langs,
             target_langs: target_langs,
             username: userFilter,
+            min_rules: isNaN(minRulesVal) ? 0 : minRulesVal,
+            min_pass_rate: isNaN(minPassRateVal) ? 0 : minPassRateVal,
+            min_avg_pass_rate: isNaN(minAvgPassRateVal) ? 0 : minAvgPassRateVal,
         }, signal);
         populateFilters();
         renderList();

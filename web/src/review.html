@@ -6,6 +6,20 @@
   <meta name="viewport" content="width=800">
   <title>Last Translation Benchmark</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+
+  <style>
+    input[type="number"] {
+      /* hide arrows */
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+  </style>
 </head>
 
 <body>
@@ -51,8 +65,17 @@
           <option value="oldest_commented">Oldest commented</option>
         </select>
         <label id="admin-mode-container" style="display:none; align-items:center; gap:4px; font-size: 14px; font-weight: 500; margin-top: -10px;">
-          <input type="checkbox" id="admin-mode-checkbox" style="margin-bottom: 1px;"> Admin mode
+          <input type="checkbox" id="admin-mode-checkbox" style="margin-bottom: 1px;"> Show all languages
         </label>
+        <div id="admin-filters-container" style="display:none; align-items:center; gap:8px; font-size: 14px; margin-top: -10px;">
+          Tools to detect defect submissions.&nbsp;&nbsp;&nbsp;
+          Min rules count:
+          <input type="number" id="filter-min-rules" min="0" value="0" style="width: 50px; margin-bottom: -1px;" class="tab">
+          Easy rules pass rate:
+          <input type="number" id="filter-min-pass-rate" min="0" max="100" value="0" style="width: 50px; margin-bottom: -1px;" class="tab">
+          Avg pass rate:
+          <input type="number" id="filter-min-avg-pass-rate" min="0" max="100" value="0" style="width: 50px; margin-bottom: -1px;" class="tab">
+        </div>
       </div>
       <div id="sen-list">
         <div class="empty">Loading…</div>
