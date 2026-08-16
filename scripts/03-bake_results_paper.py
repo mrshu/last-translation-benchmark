@@ -7,7 +7,6 @@ import math
 import random
 import statistics
 import os
-
 import scipy.stats
 import utils_fig
 import matplotlib.pyplot as plt
@@ -16,6 +15,8 @@ import numpy as np
 os.chdir(os.path.dirname(os.path.abspath(__file__))+ "/../")
 
 os.makedirs("computed/", exist_ok=True)
+
+AUTHORSHIP_POINTS_MIN = 1
 
 with open("data/users.json", "r") as f:
     data_users = json.load(f)
@@ -344,5 +345,44 @@ data_out["model_results"] = {
     if model in WHITELIST_MT
 }
 
-with open("computed/bake_results.json", "w") as f:
+
+
+# add contributors
+user_points = {}
+for s in data_submissions:
+    if s["status"] != "accept":
+        continue
+    contributor_username = s.get("username")
+    reviewer_username = s.get("reviewed_by")
+    user_points[contributor_username] = user_points.get(contributor_username, 0) + 1
+    # add partial credit for reviewing
+    user_points[reviewer_username] = user_points.get(reviewer_username, 0) + 0.2
+
+
+# Filter authors who have enough points and gave credit consent
+authors = []
+for u in data_users:
+    pts = user_points.get(u["username"], 0)
+    if pts >= AUTHORSHIP_POINTS_MIN and u["credit_consent"]:
+        authors.append(
+            {
+                "name": u.get("name") or u["username"],
+                "affiliation": u.get("affiliation", ""),
+                "points": pts,
+            }
+        )
+
+# Sort authors by points (desc) then name
+authors.sort(key=lambda x: (x["points"], x["name"]), reverse=True)
+# Clean export format
+contributors = [
+    (a["name"], a["affiliation"]) for a in authors
+]
+# Remove duplicates. fromkeys is used over set to preserve order.
+contributors = list(dict.fromkeys(contributors))
+contributors = [{"name": a[0], "affiliation": a[1]} for a in contributors]
+data_out["contributors"] = contributors
+
+
+with open("computed/baked.json", "w") as f:
     json.dump(data_out, f, indent=2, ensure_ascii=False)
