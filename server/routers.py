@@ -701,11 +701,12 @@ MODEL_LIBRARY = [
     {"name": "Gemma 4", "fn": functools.partial(translate_openrouter, model="google/gemma-4-31b-it"), "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
     {"name": "Llama 4 Maverick", "fn": functools.partial(translate_openrouter, model="meta-llama/llama-4-maverick"), "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "GPT-5.4 Mini", "fn": functools.partial(translate_openrouter, model="openai/gpt-5.4-mini"), "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "GPT-5.6 Sol", "fn": functools.partial(translate_openrouter, model="openai/gpt-5.6-sol"), "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "Deepseek V4 Pro", "fn": functools.partial(translate_openrouter, model="deepseek/deepseek-v4-pro"), "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "Claude Sonnet 4.5", "fn": functools.partial(translate_openrouter, model="anthropic/claude-sonnet-4.5"), "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "TinyAya Global", "fn": functools.partial(translate_openrouter, model="cohere/tiny-aya-global"), "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    # {"name": "TinyAya Global", "fn": functools.partial(translate_openrouter, model="cohere/tiny-aya-global"), "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
     # {"name": "Command A+", "fn": functools.partial(translate_openrouter, model="cohere/command-a-plus-05-2026"), "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Gemini 3.5 Flash", "fn": functools.partial(translate_openrouter, model="google/gemini-3.5-flash"), "support_image": False, "support_audio": True, "support_video": True, "support_textonly": False},
+    {"name": "Gemini 3.5 Flash Lite", "fn": functools.partial(translate_openrouter, model="google/gemini-3.5-flash-lite"), "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
     {"name": "Gemini 2.5 Pro", "fn": functools.partial(translate_openrouter, model="google/gemini-2.5-pro"), "support_image": False, "support_audio": True, "support_video": True, "support_textonly": False},
     {"name": "Qwen 3.7 Plus", "fn": functools.partial(translate_openrouter, model="qwen/qwen3.7-plus"), "support_image": False, "support_audio": False, "support_video": True, "support_textonly": False},
     {"name": "Voxtral Small", "fn": functools.partial(translate_openrouter, model="mistralai/voxtral-small-24b-2507"), "support_image": False, "support_audio": True, "support_video": False, "support_textonly": False},
@@ -901,10 +902,10 @@ async def create_submission(req: SubmissionReq, user: CurrentUser):
     accepted_count = sum(1 for s in user_submissions if s.get("status") == "accept")
     non_accepted_count = len(user_submissions) - accepted_count
 
-    if accepted_count >= 60:
+    if accepted_count >= 100:
         raise HTTPException(
             status_code=400,
-            detail="You already have more than 60 accepted submissions. To ensure diversity, we'll prefer submissions from other sources, which we would appreciate if you could help us review (get in touch)."
+            detail="You already have more than 100 accepted submissions. To ensure diversity, we'll prefer submissions from other sources, which we would appreciate if you could help us review (get in touch)."
         )
     
     if non_accepted_count >= accepted_count + 20:
