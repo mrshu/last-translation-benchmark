@@ -276,7 +276,7 @@ async def api_call_llm(req: APILLMReq, user: CurrentUser):
         raise HTTPException(status_code=429, detail=f"Too many requests to Cohere/{req.model}. Please try again later.")
     except openrouter.errors.ResponseValidationError:
         raise HTTPException(status_code=418, detail=f"Response validation error from OpenRouter/{req.model}.")
-    except openrouter.errors.badrequestresponse_error.BadRequestResponseError as exc:
+    except openrouter.errors.BadRequestResponseError as exc:
         raise HTTPException(status_code=418, detail=f"Bad response to OpenRouter/{req.model}. {exc}")
     except openrouter.errors.NotFoundResponseError as exc:
         raise HTTPException(status_code=400, detail=str(exc))

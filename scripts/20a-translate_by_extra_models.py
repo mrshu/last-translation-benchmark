@@ -12,34 +12,31 @@ os.chdir(os.path.dirname(os.path.abspath(__file__))+"/..")
 from last_translation_benchmark.utils import get_config
 
 MODELS = [
-    {"name": "Gemma 4", "model": "google/gemma-4-31b-it", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
-    {"name": "Llama 4 Maverick", "model": "meta-llama/llama-4-maverick", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "GPT-5.4 Mini", "model": "openai/gpt-5.4-mini", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Claude Haiku 4.5", "model": "anthropic/claude-haiku-4.5", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Claude Sonnet 4.5", "model": "anthropic/claude-sonnet-4.5", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Command A", "model": "cohere/command-a", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Gemma 4", "model": "google/gemma-4-31b-it", "support_image": True, "support_audio": False, "support_video": True},
+    {"name": "Llama 4 Maverick", "model": "meta-llama/llama-4-maverick", "support_image": True, "support_audio": False, "support_video": False},
+    {"name": "GPT-5.4 Mini", "model": "openai/gpt-5.4-mini", "support_image": True, "support_audio": False, "support_video": False},
+    {"name": "Claude Haiku 4.5", "model": "anthropic/claude-haiku-4.5", "support_image": True, "support_audio": False, "support_video": False},
+    {"name": "Claude Sonnet 4.5", "model": "anthropic/claude-sonnet-4.5", "support_image": True, "support_audio": False, "support_video": False},
+    {"name": "Command A", "model": "cohere/command-a", "support_image": False, "support_audio": False, "support_video": False},
     # hit monthly quota?
-    #{"name": "Command A+", "model": "cohere/command-a-plus-05-2026", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "TinyAya Global", "model": "cohere/tiny-aya-global", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "GPT-5.6 Terra", "model": "openai/gpt-5.6-terra", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "GPT-5.6 Luna", "model": "openai/gpt-5.6-luna", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "GPT-5.6 Sol", "model": "openai/gpt-5.6-sol", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Qwen 3.7 Plus", "model": "qwen/qwen3.7-plus", "support_image": False, "support_audio": False, "support_video": True, "support_textonly": False},
-    {"name": "Qwen 3.7 Flash", "model": "qwen/qwen3.7-flash", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
-    {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
-    {"name": "Gemini 3.1 Pro", "model": "google/gemini-3.1-pro-preview", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
-    {"name": "gpt-oss-20b", "model": "openai/gpt-oss-20b", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Kimi K3", "model": "moonshotai/kimi-k3", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Nemotron 3 Ultra", "model": "nvidia/nemotron-3-ultra-550b-a55b", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Deepseek V4 Pro", "model": "deepseek/deepseek-v4-pro", "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    #{"name": "Command A+", "model": "cohere/command-a-plus-05-2026", "support_image": True, "support_audio": False, "support_video": False},
+    {"name": "TinyAya Global", "model": "cohere/tiny-aya-global", "support_image": False, "support_audio": False, "support_video": False},
+    {"name": "GPT-5.6 Terra", "model": "openai/gpt-5.6-terra", "support_image": True, "support_audio": False, "support_video": False},
+    {"name": "GPT-5.6 Luna", "model": "openai/gpt-5.6-luna", "support_image": True, "support_audio": False, "support_video": False},
+    {"name": "GPT-5.6 Sol", "model": "openai/gpt-5.6-sol", "support_image": True, "support_audio": False, "support_video": False},
+    {"name": "Qwen 3.7 Plus", "model": "qwen/qwen3.7-plus", "support_image": True, "support_audio": False, "support_video": False},
+    {"name": "Qwen 3.7 Flash", "model": "qwen/qwen3.7-flash", "support_image": True, "support_audio": False, "support_video": True},
+    {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite", "support_image": True, "support_audio": True, "support_video": True},
+    {"name": "Gemini 3.1 Pro", "model": "google/gemini-3.1-pro-preview", "support_image": True, "support_audio": True, "support_video": True},
+    {"name": "gpt-oss-20b", "model": "openai/gpt-oss-20b", "support_image": False, "support_audio": False, "support_video": False},
+    {"name": "Kimi K3", "model": "moonshotai/kimi-k3", "support_image": True, "support_audio": False, "support_video": False},
+    {"name": "Nemotron 3 Ultra", "model": "nvidia/nemotron-3-ultra-550b-a55b", "support_image": False, "support_audio": False, "support_video": False},
+    {"name": "Deepseek V4 Pro", "model": "deepseek/deepseek-v4-pro", "support_image": False, "support_audio": False, "support_video": False},
     
     # special instructions privilege
-    {"name": "Gemma 4", "model": "google/gemma-4-31b-it", "privilege": "ONE", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
-    {"name": "Gemma 4", "model": "google/gemma-4-31b-it", "privilege": "ALL", "support_image": True, "support_audio": False, "support_video": True, "support_textonly": True},
-    {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite", "privilege": "ONE", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
-    {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite", "privilege": "ALL", "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
-    {"name": "GPT-5.4 Mini", "model": "openai/gpt-5.4-mini", "privilege": "ONE", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "GPT-5.4 Mini", "model": "openai/gpt-5.4-mini", "privilege": "ALL", "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Gemma 4", "model": "google/gemma-4-31b-it", "privilege": "ALL", "support_image": True, "support_audio": False, "support_video": True},
+    {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite", "privilege": "ALL", "support_image": True, "support_audio": True, "support_video": True},
+    {"name": "GPT-5.4 Mini", "model": "openai/gpt-5.4-mini", "privilege": "ALL", "support_image": True, "support_audio": False, "support_video": False},
 ]
 # use direct API access to avoid Forpsi throttling
 API_URL = "https://quest.ms.mff.cuni.cz/ltb/api/llm"
@@ -183,7 +180,7 @@ async def main():
         return sub_changed
 
     # chunk to multiple submissions at a time to avoid overloading the API
-    CHUNK_SIZE = 10
+    CHUNK_SIZE = 40
     for chunk_i in range(0, len(submissions), CHUNK_SIZE):
         sub_chunk = submissions[chunk_i:chunk_i+CHUNK_SIZE]
 

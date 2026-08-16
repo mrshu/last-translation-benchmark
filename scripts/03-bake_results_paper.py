@@ -35,8 +35,6 @@ user_counts["admins"] = set(x["username"] for x in data_users if "admin" in x["r
 
 data_out["user_counts"] = {k: len(v) for k, v in user_counts.items()}
 
-print(len([x for x in data_submissions if x["status"] == "accept"]))
-
 # language distribution
 language_counts = collections.Counter()
 language_counts_simple = collections.Counter()
@@ -135,7 +133,6 @@ plt.tight_layout(pad=0.5)
 plt.gca().patch.set_alpha(0)
 plt.gcf().patch.set_alpha(0)
 plt.savefig("computed/collection_progress.svg")
-plt.show()
 
 
 data_out["status_counts"] = dict(status_counts.most_common())
@@ -323,7 +320,7 @@ for metric in all_metrics:
     scores1_all = [
         data_out["model_results"][model][metric]
         for model in data_out["model_results"]
-        if data_out["model_results"][model][metric] is not None
+        if data_out["model_results"][model][metric] is not None and data_out["model_results"][model][metric]
     ]
     scores1 = [
         statistics.mean(scores)
