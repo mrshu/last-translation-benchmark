@@ -11,9 +11,10 @@ from openrouter import OpenRouter
 
 from .db import sqlite_cache
 from .languages import LANGUAGES
-from .utils import get_config, log, retry_async
+from .utils import get_config, is_doomlooped_entropy, log, retry_async
 
 OPENROUTER_CLIENT = OpenRouter(api_key=get_config("OPENROUTER_API_KEY", ""))
+OPENROUTER_BYOK_CLIENT = OpenRouter(api_key=get_config("OPENROUTER_API_KEY_BYOK", ""))
 COHERE_CLIENT = cohere.AsyncClientV2(api_key=get_config("COHERE_API_KEY", ""))
 
 HTTP_CLIENT = httpx.AsyncClient(timeout=10)
@@ -163,7 +164,7 @@ async def translate_lara(
 
 
 @sqlite_cache(discard_none=True)
-async def call_llm(prompt: str | list[dict], model: str = "google/gemini-2.5-flash") -> str | None:
+async def call_llm(prompt: str | list[dict], model: str = "google/gemini-3.5-flash-lite") -> str | None:
     if isinstance(prompt, str):
         prompt = [{"role": "user", "content": prompt}]
 
@@ -183,7 +184,11 @@ async def call_llm(prompt: str | list[dict], model: str = "google/gemini-2.5-fla
             return None
         output_str = str(response_text[0])
     else:
-        response = await OPENROUTER_CLIENT.chat.send_async(
+        if model.startswith("google/") or model.startswith("openai/"):
+            client = OPENROUTER_BYOK_CLIENT
+        else:
+            client = OPENROUTER_CLIENT
+        response = await client.chat.send_async(
             model=model,
             messages=prompt, # type: ignore
             seed=0,
@@ -196,7 +201,7 @@ async def call_llm(prompt: str | list[dict], model: str = "google/gemini-2.5-fla
         output_str = str(content)
 
     # hack to fix specific doomlooping
-    if output_str.count("our ") > 1_000:
+    if is_doomlooped_entropy(output_str):
         output_str = '"teapot"'
     return output_str
 

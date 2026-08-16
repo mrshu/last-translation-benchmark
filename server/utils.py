@@ -7,6 +7,7 @@ import tomllib
 import urllib.parse
 from functools import wraps
 from typing import Any
+import zlib
 
 for config_file in ["config.toml", "config.template.toml"]:
     if os.path.exists(
@@ -19,10 +20,22 @@ else:
 with open(config_file, "rb") as f:
     config_data: dict[str, Any] = tomllib.load(f)
 
+def is_doomlooped_entropy(text: str, threshold: float = 0.01) -> float:
+    if not text:
+        return 1.0
+    raw_bytes = text.encode('utf-8')
+    entropy = len(zlib.compress(raw_bytes)) / len(raw_bytes)
+    if entropy < threshold:
+        print(f"WARNING: doomlooping detected {entropy:.4f} for: {text[:50]}...")
+        return True
+    return False
+
 
 def get_config(key: str, default: Any = "") -> Any:
-    return config_data.get(key) or os.getenv(key, default)
-
+    out = config_data.get(key) or os.getenv(key, default)
+    if out is None or out == default or not out:
+        print("WARNING: Config key", key, "is not set. Using default:", default)
+    return out
 
 def log(message: str) -> None:
     print(f"[{time.strftime("%Y-%m-%d %H:%M")}] {message}", flush=True)
