@@ -184,7 +184,7 @@ async def call_llm(prompt: str | list[dict], model: str = "google/gemini-3.5-fla
             return None
         output_str = str(response_text[0])
     else:
-        if model.startswith("google/") or model.startswith("openai/"):
+        if model.startswith(("google/", "openai/")):
             client = OPENROUTER_BYOK_CLIENT
         else:
             client = OPENROUTER_CLIENT

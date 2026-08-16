@@ -5,9 +5,9 @@ import shutil
 import time
 import tomllib
 import urllib.parse
+import zlib
 from functools import wraps
 from typing import Any
-import zlib
 
 for config_file in ["config.toml", "config.template.toml"]:
     if os.path.exists(
@@ -20,7 +20,7 @@ else:
 with open(config_file, "rb") as f:
     config_data: dict[str, Any] = tomllib.load(f)
 
-def is_doomlooped_entropy(text: str, threshold: float = 0.01) -> float:
+def is_doomlooped_entropy(text: str, threshold: float = 0.03) -> float:
     if not text:
         return 1.0
     raw_bytes = text.encode('utf-8')
