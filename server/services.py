@@ -170,6 +170,7 @@ async def call_llm(prompt: str | list[dict], model: str = "google/gemini-2.5-fla
     if model == "cohere/command-a":
         model = "cohere/command-a-03-2025"
 
+    output_str = None
     if model in {"cohere/command-a-plus-05-2026", "cohere/tiny-aya-global"}:
         response = await COHERE_CLIENT.chat(
             model=model.removeprefix("cohere/"),
@@ -180,7 +181,7 @@ async def call_llm(prompt: str | list[dict], model: str = "google/gemini-2.5-fla
         if not response_text:
             log(f"None LLM response: {response}")
             return None
-        return response_text[0]
+        output_str = str(response_text[0])
     else:
         response = await OPENROUTER_CLIENT.chat.send_async(
             model=model,
@@ -190,7 +191,14 @@ async def call_llm(prompt: str | list[dict], model: str = "google/gemini-2.5-fla
         content = response.choices[0].message.content
         if content is None:
             log(f"None LLM response: {response.choices[0]}")
-        return content  # type: ignore
+            return None
+
+        output_str = str(content)
+
+    # hack to fix specific doomlooping
+    if output_str.count("our ") > 1_000:
+        output_str = '"teapot"'
+    return output_str
 
 
 @retry_async(times=3)
