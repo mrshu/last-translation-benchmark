@@ -443,6 +443,9 @@ async def public_dashboard():
         # In that case, default to anonymous (credit_consent=False).
         credit_consent = user["credit_consent"] if user else False
 
+        if accepted == 0:
+            continue
+
         if credit_consent and user:
             rows.append(
                 {

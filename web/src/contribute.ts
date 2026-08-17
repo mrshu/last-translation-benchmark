@@ -423,7 +423,7 @@ $(async () => {
             error: null,
             verified: t.verified
         }));
-        inputCorrespondsToTranslations = true;
+        inputCorrespondsToTranslations = false;
         if (lastResults.length > 0) {
             renderApiResults();
             // Show verification badges
@@ -434,6 +434,8 @@ $(async () => {
                 }
             });
         }
+
+
 
         $('#submit-btn').text('Update Submission');
         $('#cancel-edit-btn').show();
