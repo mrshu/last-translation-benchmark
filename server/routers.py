@@ -419,12 +419,14 @@ async def public_dashboard():
     sorted_languages = sorted(language_counts.items(), key=lambda x: x[1], reverse=True)
     formatted_languages = [[lang, count] for lang, count in sorted_languages]
 
-    accepted_by_user: dict[int, int] = {}
+    user_to_accepted: dict[int, int] = collections.defaultdict(int)
     for submission in submissions:
+        user_id = submission["user_id"]
+        # init to 0 at least
+        user_to_accepted[user_id]
         if submission["status"] != "accept":
             continue
-        user_id = submission["user_id"]
-        accepted_by_user[user_id] = accepted_by_user.get(user_id, 0) + 1
+        user_to_accepted[user_id] += 1
 
     users_by_id = {u["id"]: u for u in users if isinstance(u["id"], int)}
     rows: list[dict] = []
@@ -432,7 +434,10 @@ async def public_dashboard():
     anonymous_users = set()
     anonymous_affiliations = set()
 
-    for user_id, accepted in accepted_by_user.items():
+    total_authors = len(set(user_to_accepted.keys()))
+    total_authors_accepted = len([u for u, v in user_to_accepted.items() if v >= 10])
+
+    for user_id, accepted in user_to_accepted.items():
         user = users_by_id.get(user_id)
         # We keep submissions of deleted users, so user might be None.
         # In that case, default to anonymous (credit_consent=False).
@@ -474,6 +479,7 @@ async def public_dashboard():
         "rows": rows,
         "total_submissions": total_submissions,
         "total_authors": total_authors,
+        "total_authors_accepted": total_authors_accepted,
         "languages": formatted_languages,
     }
 

@@ -12,7 +12,7 @@ with open("data/submissions.json", "r") as f:
 
 submissions = [x for x in submissions if x["status"] == "accept"]
 
-MODELS = ["human", "Google Translate", "Gemini 3.5 Flash Lite", "GPT-5.4 Mini", "Gemma 4"]
+MODELS = ["human", "Google Translate", "Gemini 3.5 Flash Lite", "GPT-5.4 Mini", "Gemma 4", "Gemini 3.1 Pro", "Qwen 3.7 Plus"]
 STYLE_FORM = "<style>.form-container { max-width: 1000px !important; }</style>"
 STYLE_CESA = """
 <style>
@@ -58,6 +58,9 @@ campaign_data = {
 for (lang1, lang2), submissions in submissions_perlangs.items():
     task_data = []
     for submission in submissions:
+        for model in MODELS:
+            if not any(x["model"] == model for x in submission["translations"]) and model != "Google Translate":
+                raise ValueError(f"Submission {submission['id']} does not have translation for model {model}")
         doc_obj = {
             "src": submission["source_text"],
             "tgt": {

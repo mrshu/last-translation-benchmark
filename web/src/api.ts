@@ -70,6 +70,7 @@ export interface PublicDashboardData {
     rows: PublicDashboardRow[];
     total_submissions: number;
     total_authors: number;
+    total_authors_accepted: number;
     languages: [string, number][];
 }
 

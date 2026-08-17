@@ -22,9 +22,10 @@ $(async () => {
         const languages_singular = data.languages.filter(x => x[1] === 1).length;
         
         $('#dashboard-stats').html(`
-            <div style="flex-wrap: wrap; display: flex; gap: 12px; text-align: justify;">
+            <div style="flex-wrap: wrap; display: flex; gap: 20px; text-align: justify;">
                 <div><strong>Total Submissions:</strong> ${data.total_submissions}</div>
                 <div><strong>Contributors:</strong> ${data.total_authors}</div>
+                <div><strong>Coauthors (10+ submissions):</strong> ${data.total_authors_accepted}</div>
                 <div style="flex-basis: 100%;"><strong>Languages:</strong> ${languages}${languages_singular > 0 ? ` and ${languages_singular} languages with a single submission` : ''}</div>
             </div>
         `);
