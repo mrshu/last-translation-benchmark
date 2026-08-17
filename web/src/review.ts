@@ -33,7 +33,6 @@ $(async () => {
         $('#sen-info').text(currentUser.username);
 
         if (currentUser.roles.includes('admin')) {
-            $('#admin-mode-container').css('display', 'flex');
             $('#admin-mode-checkbox').on('change', loadSubmissions);
             $('#admin-filters-container').css('display', 'flex');
         }

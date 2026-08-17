@@ -6,7 +6,6 @@ import collections
 import sacrebleu
 from frozendict import frozendict
 import tqdm
-import tempfile
 import contextlib
 import subprocess
 
@@ -56,11 +55,11 @@ def filter_unscored(data_to_score, data_cache, metric):
     return unscored
 
 # COMET
-import comet
 for model, name in [("Unbabel/wmt22-cometkiwi-da", "Comet QE 22"), ("Unbabel/wmt22-comet-da", "Comet 22")]:
     data_to_score_local = filter_unscored(data_to_score, data_cache, name)
     if not data_to_score_local:
         continue
+    import comet
     model = comet.load_from_checkpoint(comet.download_model(model))
     data = [
         {

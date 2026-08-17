@@ -169,37 +169,21 @@ export function sortSubmissions(submissions: Submission[], sortOption: string, m
             return orderA - orderB;
         }
 
-        const getLatestNonMineCommentDate = (s: Submission): string | null => {
-            if (!s.comments || s.comments.length === 0) return null;
-            const nonMine = s.comments.filter(c => c.author !== myUsername);
-            if (nonMine.length === 0) return null;
-            return nonMine.reduce((max, c) => c.created_at > max ? c.created_at : max, nonMine[0].created_at);
-        };
-
         if (sortOption === 'last_updated' || sortOption === 'oldest_updated') {
             const valA = a.created_at;
             const valB = b.created_at;
             if (valA === valB) return 0;
             if (sortOption === 'last_updated') return valB.localeCompare(valA);
             return valA.localeCompare(valB);
-        } else {
-            const dateA = getLatestNonMineCommentDate(a);
-            const dateB = getLatestNonMineCommentDate(b);
-
-            if (dateA !== null && dateB !== null) {
-                if (dateA === dateB) {
-                    if (a.created_at === b.created_at) return 0;
-                    return sortOption === 'last_commented' ? b.created_at.localeCompare(a.created_at) : a.created_at.localeCompare(b.created_at);
-                }
-                return sortOption === 'last_commented' ? dateB.localeCompare(dateA) : dateA.localeCompare(dateB);
-            } else if (dateA !== null && dateB === null) {
-                return -1; // items with comments always come first
-            } else if (dateA === null && dateB !== null) {
-                return 1;  // items with comments always come first
-            } else {
-                if (a.created_at === b.created_at) return 0;
-                return sortOption === 'last_commented' ? b.created_at.localeCompare(a.created_at) : a.created_at.localeCompare(b.created_at);
+        } else if (sortOption === 'most_comments') {
+            const commentsA = a.comments ? a.comments.length : 0;
+            const commentsB = b.comments ? b.comments.length : 0;
+            if (commentsA !== commentsB) {
+                return commentsB - commentsA;
             }
+            if (a.created_at === b.created_at) return 0;
+            return b.created_at.localeCompare(a.created_at);
         }
+        return 0;
     });
 }

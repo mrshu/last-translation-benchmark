@@ -19,6 +19,14 @@
       -webkit-appearance: none;
       margin: 0;
     }
+
+    #admin-filters-container input[type="number"] {
+      width: 40px;
+      text-align: center;
+      padding-left: 0px;
+      padding-right: 0px;
+      margin-bottom: -2px;
+    }
   </style>
 </head>
 
@@ -60,21 +68,21 @@
         </select>
         <select id="filter-sort" class="tab" style="width:180px">
           <option value="last_updated">Last updated</option>
-          <option value="last_commented">Last commented</option>
           <option value="oldest_updated">Oldest updated</option>
-          <option value="oldest_commented">Oldest commented</option>
+          <option value="most_comments">Most comments</option>
         </select>
-        <label id="admin-mode-container" style="display:none; align-items:center; gap:4px; font-size: 14px; font-weight: 500; margin-top: -10px;">
-          <input type="checkbox" id="admin-mode-checkbox" style="margin-bottom: 1px;"> Show all languages
-        </label>
-        <div id="admin-filters-container" style="display:none; align-items:center; gap:8px; font-size: 14px; margin-top: -10px;">
-          Tools to detect defect submissions.&nbsp;&nbsp;&nbsp;
-          Min rules count:
-          <input type="number" id="filter-min-rules" min="0" value="0" style="width: 50px; margin-bottom: -1px;" class="tab">
-          Easy rules pass rate:
-          <input type="number" id="filter-min-pass-rate" min="0" max="100" value="0" style="width: 50px; margin-bottom: -1px;" class="tab">
+        <div id="admin-filters-container" style="display:none; align-items:center; font-size: 14px; margin: -10px 0px 10px 5px;">
+          Admin-only:&nbsp;&nbsp;&nbsp;
+          Show all languages: <input type="checkbox" id="admin-mode-checkbox" style="margin-bottom: 1px;">
+          &nbsp;&nbsp;
+          Min rules count: 
+          <input type="number" id="filter-min-rules" min="0" value="0" class="tab">
+          &nbsp;&nbsp;
+          Easy rules pass rate: 
+          <input type="number" id="filter-min-pass-rate" min="0" max="100" value="0" class="tab">
+          &nbsp;&nbsp;
           Avg pass rate:
-          <input type="number" id="filter-min-avg-pass-rate" min="0" max="100" value="0" style="width: 50px; margin-bottom: -1px;" class="tab">
+          <input type="number" id="filter-min-avg-pass-rate" min="0" max="100" value="0" class="tab">
         </div>
       </div>
       <div id="sen-list">
