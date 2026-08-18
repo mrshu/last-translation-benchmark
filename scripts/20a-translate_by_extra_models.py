@@ -180,10 +180,13 @@ async def main():
 
         return sub_changed
 
+    submissions_accepted = [sub for sub in submissions if sub["status"] == "accept"]
     # chunk to multiple submissions at a time to avoid overloading the API
-    CHUNK_SIZE = 40
-    for chunk_i in range(0, len(submissions), CHUNK_SIZE):
-        sub_chunk = submissions[chunk_i:chunk_i+CHUNK_SIZE]
+    CHUNK_SIZE = 20
+    for chunk_i in range(0, len(submissions_accepted), CHUNK_SIZE):
+        # we're modifying accepted submissions but they point to the same object
+        # this helps keep chunks similarly full
+        sub_chunk = submissions_accepted[chunk_i:chunk_i+CHUNK_SIZE]
 
         pbar_desc = f"Translating #{sub_chunk[0]["id"]}--#{sub_chunk[-1]["id"]}"
         update_pbar()

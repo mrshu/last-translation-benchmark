@@ -279,6 +279,8 @@ async def api_call_llm(req: APILLMReq, user: CurrentUser):
         raise HTTPException(status_code=418, detail=f"Response validation error from OpenRouter/{req.model}.")
     except openrouter.errors.BadRequestResponseError as exc:
         raise HTTPException(status_code=418, detail=f"Bad response to OpenRouter/{req.model}. {exc}")
+    except openrouter.errors.UnprocessableEntityResponseError as exc:
+        raise HTTPException(status_code=418, detail=f"Unprocessable entity for OpenRouter/{req.model}. {exc}")
     except openrouter.errors.NotFoundResponseError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     
@@ -452,6 +454,7 @@ async def public_dashboard():
                     "name": user["name"],
                     "affiliation": user["affiliation"],
                     "accepted_submissions": accepted,
+                    "user_id": user_id,
                 }
             )
         else:
@@ -468,13 +471,14 @@ async def public_dashboard():
                 "name": f"Anonymous ({len(anonymous_users)} users)",
                 "affiliation": f"Multiple affiliations ({len(anonymous_affiliations)})",
                 "accepted_submissions": anonymous_submissions,
+                "user_id": 0,
             }
         )
 
     rows.sort(
         key=lambda row: (
             int(row["accepted_submissions"]),
-            str(row["name"]),
+            -row["user_id"],
         ),
         reverse=True,
     )
