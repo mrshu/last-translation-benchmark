@@ -18,7 +18,7 @@ os.chdir(os.path.dirname(os.path.abspath(__file__))+ "/../")
 
 os.makedirs("computed/", exist_ok=True)
 
-AUTHORSHIP_POINTS_MIN = 1
+AUTHORSHIP_POINTS_MIN = 2
 
 print("Loading data")
 
