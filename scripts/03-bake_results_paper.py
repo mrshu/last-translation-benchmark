@@ -269,7 +269,24 @@ data_models = collections.defaultdict(lambda: collections.defaultdict(list))
 data_models_selfbias = collections.defaultdict(lambda: {"llm": [], "verifier": []})
 with open("computed/autometrics_cache.json", "r") as f:
     data_autometrics_cache = json.load(f)
-for submission in data_submissions:
+
+data_submissions_accepted = [x for x in data_submissions if x["status"] == "accept"]
+data_submissions_textonly = [
+    x for x in data_submissions_accepted
+    if x["source_media"] is None and x["source_instructions"] is None
+]
+data_submissions_v1 = [
+    x for x in data_submissions_textonly
+    # passing models at most half of the models
+    # pass if at least one verifier is satisfied
+    if statistics.mean(any(all(vl) for vl in mt_obj.get("verified_extra", {}).values()) for mt_obj in x["translations"] if mt_obj["model"] != "human") <= 0.5
+]
+print("- Original:", len(data_submissions))
+print("- Accepted:", len(data_submissions_accepted))
+print("- Accepted, text-only:", len(data_submissions_textonly))
+print("- v1:", len(data_submissions_v1))
+
+for submission in data_submissions_v1:
     human_translation = next(x for x in submission["translations"] if x["model"] == "human")["translation"]
 
     model_ranking_verifier = collections.defaultdict(dict)
