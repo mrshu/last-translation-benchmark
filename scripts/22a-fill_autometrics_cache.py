@@ -1,13 +1,14 @@
 # %%
 
+import collections
+import contextlib
 import json
 import os
-import collections
-import sacrebleu
-from frozendict import frozendict
-import tqdm
-import contextlib
 import subprocess
+
+import sacrebleu
+import tqdm
+from frozendict import frozendict
 
 os.chdir(os.path.dirname(os.path.abspath(__file__))+"/..")
 
@@ -21,7 +22,7 @@ for submission in data_submissions:
         continue
     if submission["source_media"] is not None or submission["source_instructions"] is not None:
         continue
-    translation_reference = [x for x in submission["translations"] if x["model"] == "human"][0]
+    translation_reference = next(x for x in submission["translations"] if x["model"] == "human")
     for translation in submission["translations"]:
         if translation["model"].startswith("SKIP: "):
             continue

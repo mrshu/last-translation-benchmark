@@ -1,12 +1,13 @@
+import asyncio
 import collections
 import json
 import os
-import urllib.parse
-import tqdm
-import asyncio
-import utils
 import random
-import os
+import urllib.parse
+
+import tqdm
+import utils
+
 os.chdir(os.path.dirname(os.path.abspath(__file__))+"/..")
 
 from last_translation_benchmark.utils import get_config

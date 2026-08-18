@@ -1,9 +1,11 @@
 # %%
 
-import os
-import requests
-import urllib.parse
 import json
+import os
+import urllib.parse
+
+import requests
+
 os.chdir(os.path.dirname(os.path.abspath(__file__))+ "/../")
 
 from last_translation_benchmark.utils import get_config

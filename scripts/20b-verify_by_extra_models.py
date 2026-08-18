@@ -1,16 +1,16 @@
+import asyncio
 import collections
 import json
 import os
-import urllib.parse
 import random
-import asyncio
+import urllib.parse
+
 import tqdm
 import utils
 
 os.chdir(os.path.dirname(os.path.abspath(__file__))+"/..")
 
 from last_translation_benchmark.utils import get_config
-
 
 MODELS_VERIFIERS = [
     {"name": "Qwen 3.7 Flash", "model": "qwen/qwen3.7-flash"},

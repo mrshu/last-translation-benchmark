@@ -4,19 +4,23 @@ import collections
 import itertools
 import json
 import math
+import os
 import random
 import statistics
-import os
-import scipy.stats
-import utils_fig
-import matplotlib.pyplot as plt
 from datetime import datetime
+
+import matplotlib.pyplot as plt
 import numpy as np
+import scipy.stats
+from lingtypology import glottolog
+
 os.chdir(os.path.dirname(os.path.abspath(__file__))+ "/../")
 
 os.makedirs("computed/", exist_ok=True)
 
 AUTHORSHIP_POINTS_MIN = 1
+
+print("Loading data")
 
 with open("data/users.json", "r") as f:
     data_users = json.load(f)
@@ -26,35 +30,103 @@ with open("data/submissions.json", "r") as f:
 
 data_out = {}
 
-user_counts = collections.defaultdict(set)
-user_counts["registered"] = set(x["username"] for x in data_users)
-user_counts["submitted"] = set(x["username"] for x in data_submissions)
-user_counts["accepted"] = set(x["username"] for x in data_submissions if x["status"] == "accept")
-user_counts["reviewers"] = set(x["reviewed_by"] for x in data_submissions if x["reviewed_by"] is not None)
-user_counts["admins"] = set(x["username"] for x in data_users if "admin" in x["roles"])
+user_count = collections.defaultdict(set)
+user_count["registered"] = {x["username"] for x in data_users}
+user_count["submitted"] = {x["username"] for x in data_submissions}
+user_count["accepted"] = {x["username"] for x in data_submissions if x["status"] == "accept"}
+user_count["reviewers"] = {x["reviewed_by"] for x in data_submissions if x["reviewed_by"] is not None}
+user_count["admins"] = {x["username"] for x in data_users if "admin" in x["roles"]}
+data_out["user_count"] = {k: len(v) for k, v in user_count.items()}
 
-data_out["user_counts"] = {k: len(v) for k, v in user_counts.items()}
+print("Processing language data")
 
 # language distribution
-language_counts = collections.Counter()
-language_counts_simple = collections.Counter()
-language_counts_pairs = collections.Counter()
+language_count = collections.Counter()
+language_count_simple = collections.Counter()
+language_count_pairs = collections.Counter()
 for submission in data_submissions:
     if submission["status"] != "accept":
         continue
     lang1, lang2 = submission["source_lang"].strip(), submission["target_lang"].strip()
     lang1_simple, lang2_simple = lang1.split("(")[0].strip(), lang2.split("(")[0].strip()
-    language_counts_pairs[lang1_simple + " - " + lang2_simple] += 1
-    language_counts[lang1_simple] += 1
-    language_counts[lang2_simple] += 1
+    language_count_pairs[lang1_simple + " - " + lang2_simple] += 1
+    language_count[lang1_simple] += 1
+    language_count[lang2_simple] += 1
 
-    language_counts_simple[lang1_simple] += 1
-    language_counts_simple[lang2_simple] += 1
+    language_count_simple[lang1_simple] += 1
+    language_count_simple[lang2_simple] += 1
 
-data_out["language_counts"] = dict(language_counts.most_common())
-data_out["language_count_simple"] = dict(language_counts_simple.most_common())
-data_out["language_count_simple_pairs"] = dict(language_counts_pairs.most_common())
+# download classification into resourcedness
+enum2resourcedness = {
+    '5': 'Ultra-High',
+    '4': 'High',
+    '3': 'Medium',
+    '2': 'Low',
+    '1': 'Minimal',
+    '0': 'Zero',
+}
+if not os.path.exists("data/lang2resourcedness.json"):
+    import requests
+    r = requests.get("https://microsoft.github.io/linguisticdiversity/assets/lang2tax.txt")
+    lang2resourcedness = {}
+    for line in r.text.splitlines():
+        lang, resourcedness = line.strip().split(",")
+        lang2resourcedness[lang] = enum2resourcedness[resourcedness]
+    with open("data/lang2resourcedness.json", "w") as f:
+        json.dump(lang2resourcedness, f, indent=2, ensure_ascii=False)
 
+with open("data/lang2resourcedness.json", "r") as f:
+    lang2resourcedness = json.load(f)
+
+language_family = collections.Counter()
+language_resourcedness = collections.Counter({
+    resourcedness: 0 for resourcedness in enum2resourcedness.values()
+})
+for lang_simple, count in language_count_simple.items():
+    if lang_simple == "English":
+        continue
+
+    if lang_simple == "Farsi":
+        lang_simple = "Persian"
+
+    if lang_simple.lower() in lang2resourcedness:
+        language_resourcedness[lang2resourcedness[lang_simple.lower()]] += count
+
+    if lang_simple == "Persian":
+        lang_simple = "Western Farsi"
+    elif lang_simple == "Chinese":
+        lang_simple = "Mandarin Chinese"
+    elif lang_simple == "Hebrew":
+        lang_simple = "Modern Hebrew"
+    elif "Arabic" in lang_simple:
+        lang_simple = "Arabic"
+    elif "Czech" in lang_simple:
+        lang_simple = "Czech"
+    
+    lang_families = glottolog.get_affiliations([lang_simple])[0].split(",")[0]
+    if lang_families:
+        language_family[lang_families] += count
+    else:
+        language_family["Other"] += count
+
+other_language_family = language_family.pop("Other", 0)
+for lang, count in language_family.most_common()[4:]:
+    other_language_family += count
+    del language_family[lang]
+language_family["Other"] = other_language_family
+data_out["language_family"] = {
+    family: count/language_family.total()
+    for family, count in language_family.most_common()
+}
+data_out["language_resourcedness"] = {
+    resourcedness: count/language_count_simple.total()
+    for resourcedness, count in language_resourcedness.items()
+}
+data_out["language_count"] = dict(language_count.most_common())
+data_out["language_count_simple"] = dict(language_count_simple.most_common())
+data_out["language_count_simple_pairs"] = dict(language_count_pairs.most_common())
+
+print("Processing contributions visualization")
 # progress over time figure
 def date_to_delta(date_str):
     # subtract fom 2026-05-01
@@ -67,13 +139,13 @@ def date_to_delta(date_str):
     return delta.days
 
 # number of accepted, rejected, pending submissions
-status_counts = collections.Counter()
+status_count = collections.Counter()
 delta_today = date_to_delta(datetime.now().strftime("%Y-%m-%d %H:%M"))
 dates_pending = [0]*(delta_today+1)
 dates_accepted = [0]*(delta_today+1)
 dates_returned = [0]*(delta_today+1)
 for submission in data_submissions:
-    status_counts[submission["status"]] += 1
+    status_count[submission["status"]] += 1
     dates = [submission["created_at"]] + [x["created_at"] for x in submission["comments"]]
     delta_first = date_to_delta(min(dates))
     delta_last = date_to_delta(max(dates))
@@ -106,19 +178,19 @@ plt.xlabel("Days since 2026-05-01")
 plt.text(
     x=delta_today,
     y=dates_accepted[-1],
-    s=f" Accepted: {status_counts['accept']}",
+    s=f" Accepted: {status_count['accept']}",
     ha="left", va="center"
 )
 plt.text(
     x=delta_today,
     y=dates_pending[-1],
-    s=f"Pending: {status_counts['pending']}",
+    s=f"Pending: {status_count['pending']}",
     ha="left", va="center",
 )
 plt.text(
     x=delta_today,
     y=dates_returned[-1],
-    s=f" Returned: {status_counts['return']}",
+    s=f" Returned: {status_count['return']}",
     ha="left", va="center",
 )
 plt.text(
@@ -135,7 +207,7 @@ plt.gcf().patch.set_alpha(0)
 plt.savefig("computed/collection_progress.svg")
 
 
-data_out["status_counts"] = dict(status_counts.most_common())
+data_out["status_count"] = dict(status_count.most_common())
 data_out["quota_per_submission"] = sum(x["quota_used"] for x in data_users if x["quota_used"]) / len(data_submissions)
 data_out["proportion_multimodal"] = statistics.mean([x["source_media"] is not None for x in data_submissions if x["status"] == "accept"])
 data_out["proportion_instructions"] = statistics.mean([x["source_instructions"] is not None for x in data_submissions if x["status"] == "accept"])
@@ -190,6 +262,7 @@ WHITELIST_MT = {
     "PRIVILEGE-ALL: GPT-5.4 Mini",
 }
 
+print("Processing model results")
 
 # compute per model results
 data_models = collections.defaultdict(lambda: collections.defaultdict(list))
@@ -197,7 +270,7 @@ data_models_selfbias = collections.defaultdict(lambda: {"llm": [], "verifier": [
 with open("computed/autometrics_cache.json", "r") as f:
     data_autometrics_cache = json.load(f)
 for submission in data_submissions:
-    human_translation = [x for x in submission["translations"] if x["model"] == "human"][0]["translation"]
+    human_translation = next(x for x in submission["translations"] if x["model"] == "human")["translation"]
 
     model_ranking_verifier = collections.defaultdict(dict)
     model_ranking_llm = collections.defaultdict(dict)
@@ -268,6 +341,10 @@ data_out["model_selfbias"] = {
     }
     for model, results in data_models_selfbias.items()
 }
+
+
+
+print("Processing human annotations")
 
 with open("data/annotations.json", "r") as f:
     data_annotations_raw = json.load(f)
@@ -341,7 +418,7 @@ data_out["rules_annotation"] = {
 # average results across metrics
 all_metrics = {
     k for results in data_models.values()
-    for k in results.keys()
+    for k in results
     if (not (k.startswith("VERIFIER: ")) and (not k.startswith("JUDGE: "))) or any(k.endswith(k_allowed) for k_allowed in WHITELIST_LLM)
 }
 data_out["model_results"] = {
@@ -352,6 +429,8 @@ data_out["model_results"] = {
     for model, results in data_models.items()
     if model in WHITELIST_MT
 }
+
+print("Processing pairwise correlations and stability")
 
 # pairwise Kendall's tau correlation between metrics (human, autometrics, verifier, judge)
 metrics_pairwise_tau = collections.defaultdict(list)
@@ -406,6 +485,7 @@ data_out["model_results"] = {
 }
 
 
+print("Processing authors")
 
 # add contributors
 user_points = {}
@@ -443,6 +523,7 @@ contributors = list(dict.fromkeys(contributors))
 contributors = [{"name": a[0], "affiliation": a[1]} for a in contributors]
 data_out["contributors"] = contributors
 
+print("Saving")
 
 with open("computed/baked.json", "w") as f:
     json.dump(data_out, f, indent=2, ensure_ascii=False)
