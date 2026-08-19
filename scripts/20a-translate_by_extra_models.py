@@ -39,9 +39,8 @@ MODELS = [
     {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite", "privilege": "ALL", "support_image": True, "support_audio": True, "support_video": True},
     {"name": "GPT-5.4 Mini", "model": "openai/gpt-5.4-mini", "privilege": "ALL", "support_image": True, "support_audio": False, "support_video": False},
 ]
-# use direct API access to avoid Forpsi throttling
-API_URL = "https://quest.ms.mff.cuni.cz/ltb/api/llm"
 DATA_FILE = "data/submissions.json"
+CHUNK_SIZE = 20
 
 COOKIES = {
     "ltb_user": urllib.parse.quote(get_config("LTB_API_USER")),
@@ -156,7 +155,7 @@ async def main():
             try:
                 pbar_tasks.add((model["name"], sub["id"]))
                 update_pbar()
-                response = await utils.request_post_with_backoff(url=API_URL, json=payload, cookies=COOKIES)
+                response = await utils.request_post_with_backoff(url=get_config("LTB_API_URL"), json=payload, cookies=COOKIES)
                 if response.status_code == 200:
                     translation = response.json()
                     new_t = {
@@ -182,7 +181,6 @@ async def main():
 
     submissions_accepted = [sub for sub in submissions if sub["status"] == "accept"]
     # chunk to multiple submissions at a time to avoid overloading the API
-    CHUNK_SIZE = 20
     for chunk_i in range(0, len(submissions_accepted), CHUNK_SIZE):
         # we're modifying accepted submissions but they point to the same object
         # this helps keep chunks similarly full

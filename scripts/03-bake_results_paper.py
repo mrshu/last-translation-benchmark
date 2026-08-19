@@ -184,7 +184,7 @@ plt.text(
 plt.text(
     x=delta_today,
     y=dates_pending[-1],
-    s=f"Pending: {status_count['pending']}",
+    s=f" Pending: {status_count['pending']}",
     ha="left", va="center",
 )
 plt.text(

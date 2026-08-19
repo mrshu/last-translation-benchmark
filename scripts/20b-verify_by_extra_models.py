@@ -21,14 +21,14 @@ MODELS_VERIFIERS = [
     {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite"},
     {"name": "GPT-5.4 Mini", "model": "openai/gpt-5.4-mini"},
 ]
-# use direct API access to avoid Forpsi throttling
-API_URL = "https://quest.ms.mff.cuni.cz/ltb/api/llm"
 DATA_FILE = "data/submissions.json"
 
 COOKIES = {
     "ltb_user": urllib.parse.quote(get_config("LTB_API_USER")),
     "ltb_token": urllib.parse.quote(get_config("LTB_API_TOKEN"))
 }
+
+CACHE = True
 
 def get_prompt_verify(source_text: str, translation: str, rule: str, source_media: str | None) -> str:
     prompt = f"Your goal is to verify whether a translation fulfills a criterion.\n\nCriterion: {rule}\n\nInput: {source_text}\n\nTranslation to verify: {translation}\n\nOutput only pass or fail and nothing else."
@@ -151,7 +151,7 @@ async def main():
                     payload = {
                         "model": model["model"],
                         "prompt": prompt,
-                        # "cache": False,
+                        "cache": CACHE,
                     }
                     if sub["source_media"]:
                         payload["source_media"] = sub["source_media"]
@@ -160,7 +160,7 @@ async def main():
                     try:
                         pbar_tasks.add(progress_id)
                         update_pbar()
-                        response = await utils.request_post_with_backoff(url=API_URL, json=payload, cookies=COOKIES)
+                        response = await utils.request_post_with_backoff(url=get_config("LTB_API_URL"), json=payload, cookies=COOKIES)
                         if response.status_code == 200:
                             res_text = response.json()
                             if res_text is None:
@@ -212,7 +212,7 @@ async def main():
                 payload = {
                     "model": model["model"],
                     "prompt": prompt,
-                    # "cache": False,
+                    "cache": CACHE,
                 }
                 if sub["source_media"]:
                     payload["source_media"] = sub["source_media"]
@@ -222,7 +222,7 @@ async def main():
                 try:
                     pbar_tasks.add(progress_id)
                     update_pbar()
-                    response = await utils.request_post_with_backoff(url=API_URL, json=payload, cookies=COOKIES)
+                    response = await utils.request_post_with_backoff(url=get_config("LTB_API_URL"), json=payload, cookies=COOKIES)
                     if response.status_code == 200:
                         res_text = response.json()
                         if res_text is None:
