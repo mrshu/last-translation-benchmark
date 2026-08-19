@@ -3,6 +3,7 @@ import collections
 import json
 import os
 import random
+import re
 import urllib.parse
 
 import tqdm
@@ -136,7 +137,11 @@ async def main():
 
             async def _process_model_verifier(model) -> bool:
                 # skip if this model has already verified this translation
-                if model["name"] in mt_obj["verified_extra"] and len(mt_obj["verified_extra"][model["name"]]) == len(sub["verification_rules"]):
+                if (
+                    model["name"] in mt_obj["verified_extra"]
+                    and len(mt_obj["verified_extra"][model["name"]]) == len(sub["verification_rules"])
+                    and all(r is not None for r in mt_obj["verified_extra"][model["name"]])
+                ):
                     return False
 
                 results = []
@@ -146,6 +151,7 @@ async def main():
                     payload = {
                         "model": model["model"],
                         "prompt": prompt,
+                        # "cache": False,
                     }
                     if sub["source_media"]:
                         payload["source_media"] = sub["source_media"]
@@ -166,6 +172,10 @@ async def main():
                             if "pass" in text_clean:
                                 results.append(True)
                             elif "fail" in text_clean:
+                                results.append(False)
+                            elif "pass" in res_text:
+                                results.append(True)
+                            elif "fail" in res_text:
                                 results.append(False)
                             else:
                                 print(f"  Invalid LLM response: {res_text}")
@@ -194,7 +204,7 @@ async def main():
 
             async def _process_model_judge(model):
                 # skip if this model has already verified this translation
-                if model["name"] in mt_obj["judge_extra"]:
+                if model["name"] in mt_obj["judge_extra"] and mt_obj["judge_extra"][model["name"]] is not None:
                     return False
 
                 prompt = get_prompt_judge(source_text_display, mt_obj["translation"], sub["source_media"])
@@ -202,6 +212,7 @@ async def main():
                 payload = {
                     "model": model["model"],
                     "prompt": prompt,
+                    # "cache": False,
                 }
                 if sub["source_media"]:
                     payload["source_media"] = sub["source_media"]
@@ -216,17 +227,26 @@ async def main():
                         res_text = response.json()
                         if res_text is None:
                             print(f"  Empty LLM response for #{sub['id']}")
+                            result = None
                         else:
                             try:
                                 # take only the last word, in case the model outputs extra text
                                 text_clean = res_text.strip().lower().replace("*", "").strip(" \t\n\r.,!?\"'%").split()[-1]
                                 result = int(float(text_clean))
                                 if not (0 <= result <= 100):
+                                    raise ValueError(f"  Result {result} out of range")
+                            except ValueError:
+                                result = re.search(r"\*\*\d+\%?\*\*", res_text)
+                                if result:
+                                    result = result[0].replace("*", "").replace("%", "")
+                                    if all(c.isdigit() for c in result):
+                                        result = int(result)
+                                    else:
+                                        print(f"  Invalid LLM response: {res_text}")
+                                        result = None
+                                else:
                                     print(f"  Invalid LLM response: {res_text}")
                                     result = None
-                            except ValueError:
-                                print(f"  Invalid LLM response: {res_text}")
-                                result = None
                     else:
                         print(f"  Error {response.status_code}: {response.text}")
                         result = None

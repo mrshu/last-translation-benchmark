@@ -9,6 +9,10 @@ To run pipeline:
 - To rerun only on specific entries, remove them from the cache file data/language_tags/model_files/openai_resolution_cache.json and run the script again.
 """
 
+# TODO: simplify this script to be in the style of the rest of the codebase
+# TODO: make use of our openrouter proxy rather than calling OpenAI directly and caching things locally
+# TODO: merge with 31b.
+
 import argparse
 import hashlib
 import json

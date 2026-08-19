@@ -18,7 +18,7 @@ os.chdir(os.path.dirname(os.path.abspath(__file__))+ "/../")
 
 os.makedirs("computed/", exist_ok=True)
 
-AUTHORSHIP_POINTS_MIN = 2
+AUTHORSHIP_POINTS_MIN = 10
 
 print("Loading data")
 
@@ -277,9 +277,13 @@ data_submissions_textonly = [
 ]
 data_submissions_v1 = [
     x for x in data_submissions_textonly
-    # passing models at most half of the models
+    # passing at most half of the models
     # pass if at least one verifier is satisfied
-    if statistics.mean(any(all(vl) for vl in mt_obj.get("verified_extra", {}).values()) for mt_obj in x["translations"] if mt_obj["model"] != "human") <= 0.5
+    if statistics.mean(
+        any(all(vl) for vl in mt_obj.get("verified_extra", {}).values() if all(v is not None for v in vl))
+        for mt_obj in x["translations"]
+        if mt_obj["model"] != "human"
+    ) <= 0.5
 ]
 print("- Original:", len(data_submissions))
 print("- Accepted:", len(data_submissions_accepted))
@@ -504,41 +508,37 @@ data_out["model_results"] = {
 
 print("Processing authors")
 
+username_to_name_affiliation = {
+    u["username"]: (u["name"], u["affiliation"])
+    for u in data_users
+    if u["credit_consent"]
+}
 # add contributors
 user_points = {}
 for s in data_submissions:
-    if s["status"] != "accept":
+    # check if date is be fore September 1, 2026
+    if datetime.strptime(s["created_at"].split(" ")[0], "%Y-%m-%d") >= datetime(2026, 9, 1):
         continue
-    contributor_username = s.get("username")
-    reviewer_username = s.get("reviewed_by")
-    user_points[contributor_username] = user_points.get(contributor_username, 0) + 1
-    # add partial credit for reviewing
-    user_points[reviewer_username] = user_points.get(reviewer_username, 0) + 0.2
+    # consider pending submissions fine
+    if s["status"] not in {"accept", "pending"}:
+        continue
 
+    contributor = username_to_name_affiliation.get(s.get("username"), None)
+    reviewer = username_to_name_affiliation.get(s.get("reviewed_by"), None)
 
-# Filter authors who have enough points and gave credit consent
-authors = []
-for u in data_users:
-    pts = user_points.get(u["username"], 0)
-    if pts >= AUTHORSHIP_POINTS_MIN and u["credit_consent"]:
-        authors.append(
-            {
-                "name": u.get("name") or u["username"],
-                "affiliation": u.get("affiliation", ""),
-                "points": pts,
-            }
-        )
+    if contributor is not None:
+        user_points[contributor] = user_points.get(contributor, 0) + 1
 
-# Sort authors by points (desc) then name
-authors.sort(key=lambda x: (x["points"], x["name"]), reverse=True)
-# Clean export format
-contributors = [
-    (a["name"], a["affiliation"]) for a in authors
+    if reviewer is not None:
+        user_points[reviewer] = user_points.get(reviewer, 0) + 0.2
+
+# sorting will happen in Typst but we can "pre-sort"
+data_out["contributors"] = [
+    {"name": k[0], "affiliation": k[1], "points": float(np.round(pts, 1))}
+    for k, pts in user_points.items()
+    if pts >= AUTHORSHIP_POINTS_MIN
 ]
-# Remove duplicates. fromkeys is used over set to preserve order.
-contributors = list(dict.fromkeys(contributors))
-contributors = [{"name": a[0], "affiliation": a[1]} for a in contributors]
-data_out["contributors"] = contributors
+data_out["contributors"].sort(key=lambda x: (x["points"], x["name"]), reverse=True)
 
 print("Saving")
 

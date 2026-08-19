@@ -269,7 +269,7 @@ async def api_call_llm(req: APILLMReq, user: CurrentUser):
 
     try:    
         result = await call_llm_multimodal(
-            prompt=req.prompt, model=req.model, source_media=req.source_media
+            prompt=req.prompt, model=req.model, source_media=req.source_media, cache=req.cache
         )
     except openrouter.errors.TooManyRequestsResponseError:
         raise HTTPException(status_code=429, detail=f"Too many requests to OpenRouter/{req.model}. Please try again later.")
