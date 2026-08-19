@@ -57,16 +57,21 @@ def evaluate_annotations_prec_recall(annotations: list[dict | None], annotations
 
 async def annotate(model, prompt, line):
     signature = f"{model['name']} ||| {prompt['name']}"
-    if signature in line["models"]:
-        return False
+    # if signature in line["models"]:
+    #     return False
     payload = {
         "model": model["model"],
         "prompt": (
             prompt["prompt"]
             + "\n\n-----\n\n"
-            + json.dumps({k:v for k,v in line.items() if k not in {"main_tags","parallel_tags_1","parallel_tags_2", "observations"}}, ensure_ascii=False, indent=2)
+            + json.dumps({
+                k:v
+                for k,v in line.items()
+                if k not in {"models", "labels", "used_in_prompt_example", "prompt_example_id"}
+            }, ensure_ascii=False, indent=2)
         ),
     }
+    # TODO: add images
     response = await utils.request_post_with_backoff(url=get_config("LTB_API_URL"), json=payload, cookies=COOKIES)
     try:
         response.raise_for_status()
