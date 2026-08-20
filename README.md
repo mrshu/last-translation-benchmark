@@ -1,14 +1,15 @@
 # <img src="web/src/assets/favicon.svg" height=30> Last Translation Benchmark
 
-To make progress in any task with AI, we need benchmarks that test the frontier of capabilities in that task, and evaluation methods that inform us about failure cases.
-  Standard translation benchmarks are often either trivial (having few authentic mistakes) or unrealistic (overly synthetically contrived).
-Furthermore, automatic translation metrics can be hijacked, are not reliable, and the output is not interpretable with high confidence.
-Even gold human evaluation is not problem-free: it often lacks reproducibility, objectivity, and scalability.
-This prevents us from tracking objective progress in the field and from informing where we should focus next.
-We introduce the Last Translation Benchmark, which contains human-authored inputs (texts, images, audio, videos) which break state-of-the-art machine translation models across many language pairs.
-Each input is peer-reviewed and also paired with one or more handcrafted verification rules, which allow for reproducible objective evaluation of future models under the same conditions.
-The Last Translation Benchmark is a live dataset that accepts contributions.
-The latest version is `LTBv1`, containing accepted contributions up to September 1st 2026, with future releases planned with subsequent contributions.
+> **Abstract:**
+> To make progress in any task with AI, we need benchmarks that test the frontier of capabilities in that task, and evaluation methods that inform us about failure cases.
+> Standard translation benchmarks are often either trivial (having few authentic mistakes) or unrealistic (overly synthetically contrived).
+> Furthermore, automatic translation metrics can be hijacked, are not reliable, and the output is not interpretable with high confidence.
+> Even gold human evaluation is not problem-free: it often lacks reproducibility, objectivity, and scalability.
+> This prevents us from tracking objective progress in the field and from informing where we should focus next.
+> We introduce the Last Translation Benchmark, which contains human-authored inputs (texts, images, audio, videos) which break state-of-the-art machine translation models across many language pairs.
+> Each input is peer-reviewed and also paired with one or more handcrafted verification rules, which allow for reproducible objective evaluation of future models under the same conditions.
+> The Last Translation Benchmark is a live dataset that accepts contributions.
+> The latest version is `LTBv1`, containing accepted contributions up to September 1st 2026, with future releases planned with subsequent contributions.
 
 This repository contains the technical backend for the online platform as well as analysis scripts for the Last Translation Benchmark paper (upcoming) and data (upcoming).
 If you're interested in contributing, register at [last-translation-benchmark.vilda.net](https://last-translation-benchmark.vilda.net) and make sure to read the instructions beforehand.
