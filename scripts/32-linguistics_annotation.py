@@ -6,6 +6,7 @@ import json
 import os
 import urllib.parse
 
+import frozendict
 import tqdm
 import utils
 import asyncio
@@ -16,14 +17,15 @@ from last_translation_benchmark.utils import get_config
 
 MODELS_ANNOTATORS = [
     {"name": "Gemini 3.1 Pro", "model": "google/gemini-3.1-pro-preview"},
-    {"name": "GPT-5.6 Sol Pro", "model": "openai/gpt-5.6-sol-pro"},
+    # {"name": "GPT-5.6 Sol Pro", "model": "openai/gpt-5.6-sol-pro"},
 ]
 PROMPTS = [
     {"name": os.path.basename(file).removesuffix(".txt"), "prompt": open(file, "r").read()}
-    for file in glob.glob("data/linguistic_prompts/*.txt")
+    for file in glob.glob("data/linguistics_prompts/*.txt")
 ]
 
-DATA_FILE = "data/linguistic_gold.json"
+DATA_LINGUISTICS_FILE = "data/linguistics_gold.json"
+DATA_FILE = "data/submissions.json"
 
 COOKIES = {
     "ltb_user": urllib.parse.quote(get_config("LTB_API_USER")),
@@ -57,21 +59,54 @@ def evaluate_annotations_prec_recall(annotations: list[dict | None], annotations
 
 async def annotate(model, prompt, line):
     signature = f"{model['name']} ||| {prompt['name']}"
-    # if signature in line["models"]:
-    #     return False
+    if signature in line["linguistics"]:
+        return False
+
+    # deduplicate and hide identity
+    translations = list({
+        frozendict.frozendict({
+            "translation": mt_obj["translation"],
+            "verified": tuple(mt_obj["verified_extra"]["Gemini 3.1 Pro"]),
+        })
+        for mt_obj in line["translations"]
+        if not mt_obj["model"].startswith("SKIP: ") and "verified_extra" in mt_obj
+    })
+    if len(translations) < 5:
+        translations = list({
+            frozendict.frozendict({
+                "translation": mt_obj["translation"],
+                "verified": tuple(mt_obj["verified"]),
+            })
+            for mt_obj in line["translations"]
+            if not mt_obj["model"].startswith("SKIP: ") and "verified" in mt_obj
+        })
+
+    translations.sort(key=lambda x: sum(x["verified"]), reverse=True)
+    if len(translations) < 3:
+        raise ValueError(f"Not enough unique translations for line {line['id']}: {len(translations)}")
+
+    payload_example = {
+        "source_text": line["source_text"],
+        "translations": translations,
+        "verification_rules": [x["value"] for x in line["verification_rules"]],
+        "source_lang": line["source_lang"],
+        "target_lang": line["target_lang"],
+    }
+    if line["source_instructions"] is not None:
+        payload_example["source_instructions"] = line["source_instructions"]
+    
     payload = {
         "model": model["model"],
         "prompt": (
             prompt["prompt"]
             + "\n\n-----\n\n"
-            + json.dumps({
-                k:v
-                for k,v in line.items()
-                if k not in {"models", "labels", "used_in_prompt_example", "prompt_example_id"}
-            }, ensure_ascii=False, indent=2)
+            + json.dumps(payload_example, ensure_ascii=False, indent=2)
         ),
     }
-    # TODO: add images
+
+    if line.get("source_media") is not None:
+        payload["source_media"] = line["source_media"]
+    
     response = await utils.request_post_with_backoff(url=get_config("LTB_API_URL"), json=payload, cookies=COOKIES)
     try:
         response.raise_for_status()
@@ -87,35 +122,59 @@ async def annotate(model, prompt, line):
         print(f"Error in response: {response.status_code} - {response.text}")
         result = None
 
-    line["models"][signature] = result
+    line["linguistics"][signature] = result
     return True
 
 async def main():
+    with open(DATA_LINGUISTICS_FILE, "r") as f:
+        data_linguistics = json.load(f)
+
     with open(DATA_FILE, "r") as f:
         submissions = json.load(f)
-    for line in submissions:
-        if "models" not in line:
-            line["models"] = {}
+
+    for line in data_linguistics:
+        matching_submissions = [
+            sub for sub in submissions
+            if (
+                sub["status"] == "accept"
+                and [mt_obj["translation"] for mt_obj in sub["translations"] if mt_obj["model"] == "human"][0] == line["human_translation"]
+                and sub["source_lang"] == line["source_lang"] and sub["target_lang"] == line["target_lang"]
+            )
+        ]
+
+        assert len(matching_submissions) == 1
+
+        sub = matching_submissions[0]
+
+        sub["linguistics"] = sub.get("linguistics", {})
+        sub["linguistics"]["human"] = line["labels"]
+
+    submissions_relevant = [
+        sub for sub in submissions
+        if "linguistics" in sub and "human" in sub["linguistics"]
+    ]
 
     print(f"Loaded {len(submissions)} submissions\n")
+    print(f"Loaded {len(submissions_relevant)} submissions with human annotations\n")
+
     for model, prompt in itertools.product(MODELS_ANNOTATORS, PROMPTS):
         signature = f"{model['name']} ||| {prompt['name']}"
         cost_input, cost_output = utils.model_price_per_token(model["model"])
         tokens = utils.estimate_tokens(prompt["prompt"]) * 2500
-        print(f"Annotating with {signature} costs ${cost_input*tokens + cost_output*tokens:.2f})")
+        print(f"Annotating with {signature} costs ${cost_input*tokens + cost_output*tokens:.2f}")
         annotations = []
 
-        for chunk_i in tqdm.tqdm(range(0, len(submissions), CHUNK_SIZE), desc=f"{signature:<50}", unit="chunks"):
-            sub_chunk = submissions[chunk_i:chunk_i+CHUNK_SIZE]
+        for chunk_i in tqdm.tqdm(range(0, len(submissions_relevant), CHUNK_SIZE), desc=f"{signature:<50}", unit="chunks"):
+            sub_chunk = submissions_relevant[chunk_i:chunk_i+CHUNK_SIZE]
             sub_changed = any(await asyncio.gather(*[annotate(model, prompt, line) for line in sub_chunk]))
 
-            # re-save after each chunk
+            # re-save *everything* after each chunk
             if sub_changed:
                 with open(DATA_FILE, "w") as f:
                     json.dump(submissions, f, indent=2, ensure_ascii=False)
 
-        annotations = [line["models"][signature] for line in submissions[:FIRST_N]]
-        annotations_gold = [line["labels"] for line in submissions[:FIRST_N]]
+        annotations = [line["linguistics"][signature] for line in submissions_relevant[:FIRST_N]]
+        annotations_gold = [line["linguistics"]["human"] for line in submissions_relevant[:FIRST_N]]
         precision, recall = evaluate_annotations_prec_recall(annotations, annotations_gold)
         print(f"Precision: {precision:.1%}, Recall: {recall:.1%}\n")
 
