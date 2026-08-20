@@ -110,7 +110,7 @@ async def annotate(model, prompt, line):
     response = await utils.request_post_with_backoff(url=get_config("LTB_API_URL"), json=payload, cookies=COOKIES)
     try:
         response.raise_for_status()
-        res_text = response.json().strip("`").removeprefix("json").strip()
+        res_text = response.json().strip("`").removeprefix("json").strip().strip("`")
         result = json.loads(res_text)
         assert isinstance(result, dict)
         assert "main_tags" in result and isinstance(result["main_tags"], list)

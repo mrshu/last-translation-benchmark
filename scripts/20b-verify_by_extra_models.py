@@ -14,12 +14,12 @@ os.chdir(os.path.dirname(os.path.abspath(__file__))+"/..")
 from last_translation_benchmark.utils import get_config
 
 MODELS_VERIFIERS = [
-    {"name": "Qwen 3.7 Flash", "model": "qwen/qwen3.7-flash"},
-    {"name": "Qwen 3.7 Plus", "model": "qwen/qwen3.7-plus"},
-    {"name": "Gemma 4", "model": "google/gemma-4-31b-it"},
-    {"name": "Gemini 3.1 Pro", "model": "google/gemini-3.1-pro-preview"},
-    {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite"},
-    {"name": "GPT-5.4 Mini", "model": "openai/gpt-5.4-mini"},
+    {"name": "Qwen 3.7 Flash", "model": "qwen/qwen3.7-flash", "support_privilege": False},
+    {"name": "Qwen 3.7 Plus", "model": "qwen/qwen3.7-plus", "support_privilege": False},
+    {"name": "Gemma 4", "model": "google/gemma-4-31b-it", "support_privilege": False},
+    {"name": "Gemini 3.1 Pro", "model": "google/gemini-3.1-pro-preview", "support_privilege": True},
+    {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite", "support_privilege": False},
+    {"name": "GPT-5.4 Mini", "model": "openai/gpt-5.4-mini", "support_privilege": False},
 ]
 DATA_FILE = "data/submissions.json"
 
@@ -129,6 +129,7 @@ async def main():
         async def _process_model_all(mt_obj) -> bool:
             if mt_obj["model"].startswith("SKIP: "):
                 return False
+
             
             sub_changed = False
             # verifier section
@@ -142,6 +143,10 @@ async def main():
                     and len(mt_obj["verified_extra"][model["name"]]) == len(sub["verification_rules"])
                     and all(r is not None for r in mt_obj["verified_extra"][model["name"]])
                 ):
+                    return False
+
+                # verify privileged translations only with one verifier
+                if mt_obj["model"].startswith("PRIVILEGE-") and not model["support_privilege"]:
                     return False
 
                 results = []

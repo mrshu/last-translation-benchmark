@@ -2,7 +2,6 @@ import asyncio
 import collections
 import json
 import os
-import random
 import urllib.parse
 
 import tqdm
@@ -38,6 +37,9 @@ MODELS = [
     {"name": "Gemma 4", "model": "google/gemma-4-31b-it", "privilege": "ALL", "support_image": True, "support_audio": False, "support_video": True},
     {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite", "privilege": "ALL", "support_image": True, "support_audio": True, "support_video": True},
     {"name": "GPT-5.4 Mini", "model": "openai/gpt-5.4-mini", "privilege": "ALL", "support_image": True, "support_audio": False, "support_video": False},
+    {"name": "Gemma 4", "model": "google/gemma-4-31b-it", "privilege": "SYNTHETIC", "support_image": True, "support_audio": False, "support_video": True},
+    {"name": "Gemini 3.5 Flash Lite", "model": "google/gemini-3.5-flash-lite", "privilege": "SYNTHETIC", "support_image": True, "support_audio": True, "support_video": True},
+    {"name": "GPT-5.4 Mini", "model": "openai/gpt-5.4-mini", "privilege": "SYNTHETIC", "support_image": True, "support_audio": False, "support_video": False},
 ]
 DATA_FILE = "data/submissions.json"
 CHUNK_SIZE = 20
@@ -111,11 +113,6 @@ async def main():
         pbar.set_description(f"{pbar_desc} with {', '.join(f'{model} ({len(tasks)})' for model, tasks in model_agg)}")
 
     async def process_sub(sub) -> bool:
-        # skip submissions which are not accepted
-        if sub["status"] != "accept":
-            return False
-
-        sub_changed = False
         if "translations" not in sub:
             sub["translations"] = []
 
@@ -140,9 +137,9 @@ async def main():
             if "privilege" in model:
                 verification_rules = []
                 if model["privilege"] == "SYNTHETIC":
-                    if "verification_rules_synthetic" not in sub:
+                    if "verification_rules_synthetic" not in sub or model["name"].removeprefix("PRIVILEGE-SYNTHETIC: ") not in sub["verification_rules_synthetic"]:
                         return False
-                    verification_rules.extend(sub["verification_rules_synthetic"])
+                    verification_rules.extend(sub["verification_rules_synthetic"][model["name"].removeprefix("PRIVILEGE-SYNTHETIC: ")])
                 elif model["privilege"] == "ALL":
                     verification_rules.extend(sub["verification_rules"])
 
@@ -176,10 +173,7 @@ async def main():
                 pbar_tasks.discard((model["name"], sub["id"]))
                 update_pbar()
 
-        tasks = await asyncio.gather(*[_process_model_translate(model) for model in MODELS])
-        sub_changed = sub_changed or any(tasks)
-
-        return sub_changed
+        return any(await asyncio.gather(*[_process_model_translate(model) for model in MODELS]))
 
     submissions_accepted = [sub for sub in submissions if sub["status"] == "accept"]
     # chunk to multiple submissions at a time to avoid overloading the API

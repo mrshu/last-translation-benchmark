@@ -260,6 +260,9 @@ WHITELIST_MT = {
     "PRIVILEGE-ALL: Gemma 4",
     "PRIVILEGE-ALL: Gemini 3.5 Flash Lite",
     "PRIVILEGE-ALL: GPT-5.4 Mini",
+    "PRIVILEGE-SYNTHETIC: Gemma 4",
+    "PRIVILEGE-SYNTHETIC: Gemini 3.5 Flash Lite",
+    "PRIVILEGE-SYNTHETIC: GPT-5.4 Mini",
 }
 
 print("Processing model results")
