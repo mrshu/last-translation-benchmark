@@ -44,8 +44,8 @@ for sub_obj in submissions_new:
             data_count_updated += 1
         submissions_id_to_obj[sub_obj["id"]] = sub_obj
 
-print("Added", data_count_new)
-print("Updated", data_count_updated)
+print("Added new", data_count_new)
+print("Accepted old", data_count_updated)
 
 merged = sorted(submissions_id_to_obj.values(), key=lambda x: x["id"])
 with open(submissions_fname, "w") as f:

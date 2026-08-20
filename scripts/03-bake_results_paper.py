@@ -490,7 +490,7 @@ for metric in all_metrics:
     ]
     for _ in range(10):
         scores2 = [
-            statistics.mean(random.sample(scores, math.ceil(len(scores)*0.01)))
+            statistics.mean(random.sample(scores, math.ceil(len(scores)*0.001)))
             for scores in scores1_all
         ]
         tau, p_value = scipy.stats.kendalltau(scores1, scores2)

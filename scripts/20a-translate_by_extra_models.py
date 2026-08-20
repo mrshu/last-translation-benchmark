@@ -83,7 +83,8 @@ async def main():
     with open(DATA_FILE, "r") as f:
         submissions = json.load(f)
 
-    prompts = [get_prompt(sub) for sub in submissions if sub["status"] == "accept"]
+    submissions_accepted = [sub for sub in submissions if sub["status"] == "accept"]
+    prompts = [get_prompt(sub) for sub in submissions_accepted]
     text_count = utils.estimate_tokens(" ".join(prompts))
     print(f"Avg tokens for translation: {text_count/len(prompts):.1f}")
     for model in MODELS:
@@ -97,7 +98,7 @@ async def main():
     #input("Do you wish to continue? (Ctrl+C to cancel)")
 
     pbar = tqdm.tqdm(
-        submissions,
+        submissions_accepted,
         bar_format="{desc}{bar}[{percentage:3.0f}%, {elapsed}<{remaining}]",
         ascii="  ",
     )
@@ -175,7 +176,6 @@ async def main():
 
         return any(await asyncio.gather(*[_process_model_translate(model) for model in MODELS]))
 
-    submissions_accepted = [sub for sub in submissions if sub["status"] == "accept"]
     # chunk to multiple submissions at a time to avoid overloading the API
     for chunk_i in range(0, len(submissions_accepted), CHUNK_SIZE):
         # we're modifying accepted submissions but they point to the same object

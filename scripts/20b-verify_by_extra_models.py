@@ -57,19 +57,12 @@ async def main():
     # Estimate tokens
     prompts_verifier = []
     prompts_judge = []
-    for sub in submissions:
-        if sub["status"] != "accept":
-            continue
-
-        if not sub["source_text"] and sub["source_media"]:
-            source_text_display = "(attached)"
-        else:
-            source_text_display = sub["source_text"]
-
+    submissions_accepted = [sub for sub in submissions if sub["status"] == "accept"]
+    for sub in submissions_accepted:
         for mt_obj in sub["translations"]:
             for rule in sub["verification_rules"]:
-                prompts_verifier.append(get_prompt_verify(source_text_display, mt_obj["translation"], rule, sub["source_media"]))
-            prompts_judge.append(get_prompt_judge(source_text_display, mt_obj["translation"], sub["source_media"]))
+                prompts_verifier.append(get_prompt_verify(sub["source_text"], mt_obj["translation"], rule, sub["source_media"]))
+            prompts_judge.append(get_prompt_judge(sub["source_text"], mt_obj["translation"], sub["source_media"]))
 
     text_count_verifier = utils.estimate_tokens(" ".join(prompts_verifier))
     text_count_judge = utils.estimate_tokens(" ".join(prompts_judge))
@@ -87,7 +80,7 @@ async def main():
     #input("Do you wish to continue? (Ctrl+C to cancel)")
 
     pbar = tqdm.tqdm(
-        submissions,
+        submissions_accepted[::-1],
         bar_format="{desc}{bar}[{percentage:3.0f}%, {elapsed}<{remaining}]",
         ascii="  ",
     )
@@ -103,15 +96,12 @@ async def main():
         pbar.set_description(f"{pbar_desc} with {', '.join(f'{model} ({len(tasks)})' for model, tasks in model_agg)}")
 
     for sub in pbar:
-        if sub["status"] != "accept":
+        # skip if more than 3 rules
+        if len(sub["verification_rules"]) > 3:
             continue
 
         # skip items that have source media for now
         if sub["source_media"]:
-            continue
-
-        # skip items with more than two validation rules for now
-        if len(sub["verification_rules"]) > 2:
             continue
         
         # take 50% of submissions randomly for now
@@ -210,6 +200,10 @@ async def main():
             async def _process_model_judge(model):
                 # skip if this model has already verified this translation
                 if model["name"] in mt_obj["judge_extra"] and mt_obj["judge_extra"][model["name"]] is not None:
+                    return False
+
+                # judge privileged translations only with one judge
+                if mt_obj["model"].startswith("PRIVILEGE-") and not model["support_privilege"]:
                     return False
 
                 prompt = get_prompt_judge(source_text_display, mt_obj["translation"], sub["source_media"])

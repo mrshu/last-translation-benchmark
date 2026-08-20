@@ -32,7 +32,7 @@ MODELS = [
     {"name": "GPT-5.4 Mini", "model": "openai/gpt-5.4-mini", "support_image": True, "support_audio": False, "support_video": False},
 ]
 DATA_FILE = "data/submissions.json"
-CHUNK_SIZE = 20
+CHUNK_SIZE = 50
 
 COOKIES = {
     "ltb_user": urllib.parse.quote(get_config("LTB_API_USER")),
@@ -75,14 +75,15 @@ async def main():
     with open(DATA_FILE, "r") as f:
         submissions = json.load(f)
 
-    prompts = [get_prompt(sub) for sub in submissions if sub["status"] == "accept"]
+    submissions_accepted = [sub for sub in submissions if sub["status"] == "accept"]
+    prompts = [get_prompt(sub) for sub in submissions_accepted]
     text_count = utils.estimate_tokens(" ".join(prompts))
     for model in MODELS:
         price_input, price_output = utils.model_price_per_token(model["model"])
         print(f"Cost for {model['model']:<40} ${price_input * text_count + price_output * text_count:.4f}")
 
     pbar = tqdm.tqdm(
-        submissions,
+        submissions_accepted,
         bar_format="{desc}{bar}[{percentage:3.0f}%, {elapsed}<{remaining}]",
         ascii="  ",
     )
@@ -138,7 +139,8 @@ async def main():
 
                     if not isinstance(rules_synthetic, list) or not all(isinstance(rule, str) for rule in rules_synthetic):
                         raise ValueError(f"Invalid response format: {rules_synthetic}")
-                    
+
+                    rules_synthetic = rules_synthetic[:len(sub["verification_rules"])]
                     sub["verification_rules_synthetic"][model["name"]] = rules_synthetic
                     return True
                 else:
@@ -156,7 +158,6 @@ async def main():
         return any(await asyncio.gather(*[_process_model(model) for model in MODELS]))
 
 
-    submissions_accepted = [sub for sub in submissions if sub["status"] == "accept"]
     # chunk to multiple submissions at a time to avoid overloading the API
     for chunk_i in range(0, len(submissions_accepted), CHUNK_SIZE):
         # we're modifying accepted submissions but they point to the same object
