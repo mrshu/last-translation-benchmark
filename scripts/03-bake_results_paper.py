@@ -280,13 +280,22 @@ data_submissions_textonly = [
 ]
 data_submissions_v1 = [
     x for x in data_submissions_textonly
-    # passing at most half of the models
-    # pass if at least one verifier is satisfied
-    if statistics.mean(
-        any(all(vl) for vl in mt_obj.get("verified_extra", {}).values() if all(v is not None for v in vl))
-        for mt_obj in x["translations"]
-        if mt_obj["model"] != "human"
-    ) <= 0.5
+    if (
+        # passing at most half of the models
+        # pass if at least one verifier is satisfied
+        statistics.mean(
+            any(all(vl) for vl in mt_obj.get("verified_extra", {}).values() if all(v is not None for v in vl))
+            for mt_obj in x["translations"]
+            if mt_obj["model"] != "human"
+        ) <= 0.5
+    ) and (
+        # pass all verifiers by human
+        all(
+            all(all(vl) for vl in mt_obj.get("verified_extra", {}).values() if any(v is not None for v in vl))
+            for mt_obj in x["translations"]
+            if mt_obj["model"] == "human"
+        )
+    )
 ]
 print("- Original:", len(data_submissions))
 print("- Accepted:", len(data_submissions_accepted))

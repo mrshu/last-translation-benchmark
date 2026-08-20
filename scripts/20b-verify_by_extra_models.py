@@ -80,7 +80,7 @@ async def main():
     #input("Do you wish to continue? (Ctrl+C to cancel)")
 
     pbar = tqdm.tqdm(
-        submissions_accepted[::-1],
+        submissions_accepted,
         bar_format="{desc}{bar}[{percentage:3.0f}%, {elapsed}<{remaining}]",
         ascii="  ",
     )
