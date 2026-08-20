@@ -76,7 +76,7 @@ for (lang1, lang2), submissions in submissions_perlangs.items():
         doc_obj_rules["instructions"] = (
             "<div class='white-box' style='margin: -80px 10px 10px 0px; background-color: #e7e2cf;'>" +
             "Now also verify the translations by considering these rules. You may disagree with their necessity.<br><br>" +
-            "<br>\n".join(["<b>Rule: </b>" + x["value"] for x in submission["verification_rules"]]) +
+            "<br>\n".join(["<b>Rule: </b>" + rule for rule in submission["verification_rules"]]) +
             "<div>"+STYLE_CESA
         )
         doc_obj_form = [
@@ -88,14 +88,14 @@ for (lang1, lang2), submissions in submissions_perlangs.items():
 
         for rule in submission["verification_rules"]:
             doc_obj_form.append({
-                "text": f"<br><br>Do you think the rule is realistic, or would it fail correct translations?<br><br><b>Rule:</b> {rule['value']}",
+                "text": f"<br><br>Do you think the rule is realistic, or would it fail correct translations?<br><br><b>Rule:</b> {rule}",
                 "form": "choices",
                 "choices": ["This rule is realistic and reasonable", "This rule is too strict", "Not sure"],
             })
         doc_obj_form.append({
             "text": (
                 "<br><br>Are there translations that are incorrect but would pass all of these verifications at the same time?<br><br>"+
-                "<br>".join(["<b>Rule: </b>" + x["value"] for x in submission["verification_rules"]])
+                "<br>".join(["<b>Rule: </b>" + rule for rule in submission["verification_rules"]])
             ),
             "form": "choices",
             "choices": ["These rules are fine as they cover most cases", "Some incorrect translations might pass through", "Not sure"],

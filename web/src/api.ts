@@ -38,9 +38,6 @@ export interface Comment {
     created_at: string;
 }
 
-export interface Rule {
-    value: string;
-}
 
 export interface Submission {
     id: number;
@@ -52,7 +49,7 @@ export interface Submission {
     source_instructions?: string;
     source_lang: string;
     target_lang: string;
-    verification_rules: Rule[];
+    verification_rules: string[];
     translations: TranslationEntry[];
     verification_model: string;
     status: 'pending' | 'accept' | 'return';
@@ -162,7 +159,7 @@ export function translate(text: string, source_lang: string, target_lang: string
 export function verify(
     source_text: string,
     translations: string[],
-    verification_rules: Rule[],
+    verification_rules: string[],
     source_media?: string,
 ) {
     return apiCall<{ results: boolean[][]; detail: string; quota: number; quota_used: number; verification_model: string }>(
@@ -219,7 +216,7 @@ export function createSubmission(data: {
     source_instructions?: string;
     source_lang: string;
     target_lang: string;
-    verification_rules: Rule[];
+    verification_rules: string[];
     translations: Array<{ model: string; translation: string; verified: boolean[] | null }>;
     verification_model: string;
 }) {
@@ -232,7 +229,7 @@ export function updateSubmission(id: number, data: {
     source_instructions?: string;
     source_lang: string;
     target_lang: string;
-    verification_rules: Rule[];
+    verification_rules: string[];
     translations: Array<{ model: string; translation: string; verified: boolean[] | null }>;
     verification_model: string;
 }) {

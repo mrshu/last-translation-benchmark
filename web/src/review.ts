@@ -299,7 +299,7 @@ function renderSug(s: Submission): string {
     const ruleRows = s.verification_rules.map(r => {
         return `<div class="sug-box" style="margin-bottom:4px; font-size: 0.9em;">
             <div class="lbl"">VERIFICATION</div>
-            ${escHtml(r.value)}
+            ${escHtml(r)}
         </div>`;
     }).join('');
 

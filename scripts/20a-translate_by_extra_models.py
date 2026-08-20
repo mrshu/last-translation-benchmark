@@ -139,10 +139,12 @@ async def main():
             prompt = get_prompt(sub)
             if "privilege" in model:
                 verification_rules = []
-                if model["privilege"] == "ONE":
-                    verification_rules.append(random.Random(sub["id"]).choice(sub["verification_rules"])["value"])
+                if model["privilege"] == "SYNTHETIC":
+                    if "verification_rules_synthetic" not in sub:
+                        return False
+                    verification_rules.extend(sub["verification_rules_synthetic"])
                 elif model["privilege"] == "ALL":
-                    verification_rules.extend([rule["value"] for rule in sub["verification_rules"]])
+                    verification_rules.extend(sub["verification_rules"])
 
                 prompt += "\nYour translation will be checked by the following rules, so make sure to follow them: " + "; ".join(verification_rules)
             payload = {

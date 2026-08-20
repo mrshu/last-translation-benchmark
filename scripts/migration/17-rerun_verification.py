@@ -68,7 +68,7 @@ async def process_submissions(submissions):
             
             new_verified = []
             for rule in rules:
-                rule_val = rule["value"]
+                rule_val = rule
                 try:
                     result = await verify_llm(
                         source_text=source_text,

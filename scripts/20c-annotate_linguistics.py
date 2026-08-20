@@ -88,7 +88,7 @@ async def annotate(model, prompt, line):
     payload_example = {
         "source_text": line["source_text"],
         "translations": translations,
-        "verification_rules": [x["value"] for x in line["verification_rules"]],
+        "verification_rules": line["verification_rules"],
         "source_lang": line["source_lang"],
         "target_lang": line["target_lang"],
     }

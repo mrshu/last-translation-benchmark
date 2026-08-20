@@ -67,8 +67,8 @@ async def main():
             source_text_display = sub["source_text"]
 
         for mt_obj in sub["translations"]:
-            for rule_obj in sub["verification_rules"]:
-                prompts_verifier.append(get_prompt_verify(source_text_display, mt_obj["translation"], rule_obj["value"], sub["source_media"]))
+            for rule in sub["verification_rules"]:
+                prompts_verifier.append(get_prompt_verify(source_text_display, mt_obj["translation"], rule, sub["source_media"]))
             prompts_judge.append(get_prompt_judge(source_text_display, mt_obj["translation"], sub["source_media"]))
 
     text_count_verifier = utils.estimate_tokens(" ".join(prompts_verifier))
@@ -145,8 +145,8 @@ async def main():
                     return False
 
                 results = []
-                for rule_i, rule_obj in enumerate(sub["verification_rules"]):
-                    prompt = get_prompt_verify(source_text_display, mt_obj["translation"], rule_obj["value"], sub["source_media"])
+                for rule_i, rule in enumerate(sub["verification_rules"]):
+                    prompt = get_prompt_verify(source_text_display, mt_obj["translation"], rule, sub["source_media"])
 
                     payload = {
                         "model": model["model"],

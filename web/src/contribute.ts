@@ -3,7 +3,7 @@ import $ from 'jquery';
 import {
     getMe, getCookie,
     translate, verify, createSubmission, updateSubmission, getSubmissions, addComment, renderRoleSwitcher, deleteSubmission,
-    User, Submission, Rule,
+    User, Submission,
 } from './api';
 
 import { esc as escHtml, fmtDate, scoreBadge, accessDenied, renderCommentThread, renderHeaderStatus, renderSource, renderVerificationPills, sortSubmissions } from './utils';
@@ -19,7 +19,7 @@ let verificationModel: string | null = null;
 let editingSubmissionId: number | null = null;
 let allMySubmissions: Submission[] = [];
 let lastMediaData: string | null = null;
-let rules: Rule[] = [{ value: '' }];
+let rules: string[] = [''];
 let inputCorrespondsToTranslations = true;
 let curSort = 'last_updated';
 
@@ -127,7 +127,7 @@ $(async () => {
 
     $('#add-rule-btn').on('click', () => {
         if (rules.length >= 5) return;
-        rules.push({ value: '' });
+        rules.push('');
         renderRules();
         invalidateVerification();
         updateButtonStates();
@@ -136,7 +136,7 @@ $(async () => {
 
     $('#rules-container').on('input', '.rule-value', function () {
         const index = $(this).closest('.rule-row').data('index');
-        rules[index].value = $(this).val() as string;
+        rules[index] = $(this).val() as string;
         invalidateVerification();
         updateButtonStates();
     });
@@ -210,7 +210,7 @@ $(async () => {
         if (translations.length === 0) { $('#verify-result').html('<span class="msg-err">No translations available</span>'); return; }
         if (rules.length === 0) { $('#verify-result').html('<span class="msg-err">No verification rules</span>'); return; }
         if (rules.length > 5) { $('#verify-result').html('<span class="msg-err">At most 5 verification rules allowed</span>'); return; }
-        if (rules.some(r => !r.value.trim())) { $('#verify-result').html('<span class="msg-err">All rules must have content</span>'); return; }
+        if (rules.some(r => !r.trim())) { $('#verify-result').html('<span class="msg-err">All rules must have content</span>'); return; }
 
         $('#verify-btn').prop('disabled', true);
         $('#submit-btn').prop('disabled', true);
@@ -285,7 +285,7 @@ $(async () => {
             $('#submit-status').html('<span class="msg-err">At most 5 verification rules allowed</span>');
             return;
         }
-        if (rules.some(r => !r.value.trim())) {
+        if (rules.some(r => !r.trim())) {
             $('#submit-status').html('<span class="msg-err">All rules must have content</span>');
             return;
         }
@@ -393,7 +393,7 @@ $(async () => {
         $('#src-text').val(sub.source_text);
         $('#src-lang').val(sub.source_lang);
         $('#tgt-lang').val(sub.target_lang);
-        rules = sub.verification_rules.length > 0 ? JSON.parse(JSON.stringify(sub.verification_rules)) : [{ value: '' }];
+        rules = sub.verification_rules.length > 0 ? JSON.parse(JSON.stringify(sub.verification_rules)) : [''];
         renderRules();
 
         // Clear previous MT results and own translation
@@ -459,7 +459,7 @@ $(async () => {
         ownVerified = null;
         verificationModel = null;
         inputCorrespondsToTranslations = true;
-        rules = [{ value: '' }];
+        rules = [''];
         renderRules();
         $('#api-results-body').hide();
         $('#submit-btn').text('Submit Input, Translations & Rule');
@@ -491,7 +491,7 @@ function renderRules() {
         const $row = $(`
             <div class="rule-row" data-index="${index}" style="display: flex; gap: 12px; align-items: flex-start; margin-bottom: 8px;">
                 <button class="rule-remove btn-underlined" style="font-size: 0.85em; align-self: center;" ${disabled}>- Remove</button>
-                <textarea class="rule-value" placeholder="${escHtml(placeholder)}" style="flex: 1; height: 40px; padding: 7px 10px; border: none; min-height: 60px; font-size: 0.85em; resize: vertical;">${escHtml(rule.value)}</textarea>
+                <textarea class="rule-value" placeholder="${escHtml(placeholder)}" style="flex: 1; height: 40px; padding: 7px 10px; border: none; min-height: 60px; font-size: 0.85em; resize: vertical;">${escHtml(rule)}</textarea>
             </div>
         `);
         $container.append($row);
@@ -552,7 +552,7 @@ function renderMySug(s: Submission): string {
     const humanTr = s.translations.find(t => t.model === 'human')?.translation ?? s.translations[0]?.translation ?? '';
 
     const rulesHtml = s.verification_rules.map((r, i) =>
-        `<div class="sug-box" style="margin-bottom: 4px; font-size: 0.9em; background: transparent; padding: 0;"><span class="lbl">VERIFICATION: </span>${escHtml(r.value)}</div>`
+        `<div class="sug-box" style="margin-bottom: 4px; font-size: 0.9em; background: transparent; padding: 0;"><span class="lbl">VERIFICATION: </span>${escHtml(r)}</div>`
     ).join('');
 
     const comments = s.comments ?? [];
@@ -604,7 +604,7 @@ function updateButtonStates(): void {
     const canVerify = (hasOwnTranslation || hasMtTranslation) && inputCorrespondsToTranslations;
     $('#verify-btn').prop('disabled', !canVerify);
 
-    const rulesNotEmpty = rules.length > 0 && rules.every(r => r.value.trim() !== '');
+    const rulesNotEmpty = rules.length > 0 && rules.every(r => r.trim() !== '');
     const humanExistsAndPasses = hasOwnTranslation && ownVerified !== null && verificationModel !== null && ownVerified.every(v => v);
     const mtPassCount = lastResults.filter(r => r.verified != null && r.verified.every(v => v)).length;
     const mtPassValid = mtPassCount <= 2;

@@ -735,10 +735,10 @@ def _filter_reviewer_submissions(
                 passed_rows.append(s)
         rows = passed_rows
     if min_rule_length > 0:
-        rows = [s for s in rows if any(len(r.get("value", "")) >= min_rule_length for r in s.get("verification_rules", []))]
+        rows = [s for s in rows if any(len(r) >= min_rule_length for r in s["verification_rules"])]
 
     if max_rule_length > 0:
-        rows = [s for s in rows if any(len(r.get("value", "")) <= max_rule_length for r in s.get("verification_rules", []))]
+        rows = [s for s in rows if any(len(r) <= max_rule_length for r in s["verification_rules"])]
 
     return rows
 
@@ -913,7 +913,7 @@ async def verify_submission(req: VerifyReq, user: CurrentUser):
         for rule in req.verification_rules:
             try:
                 res = await verify_llm(
-                    source_text, translation, rule.value, VERIFICATION_MODEL, source_media
+                    source_text, translation, rule, VERIFICATION_MODEL, source_media
                 )
                 results.append(res)
             except (OSError, RuntimeError, ValueError, KeyError) as exc:
@@ -976,7 +976,7 @@ async def create_submission(req: SubmissionReq, user: CurrentUser):
         "source_media": req.source_media,
         "source_lang": req.source_lang.strip(),
         "target_lang": req.target_lang.strip(),
-        "verification_rules": [r.dict() for r in req.verification_rules],
+        "verification_rules": req.verification_rules,
         "translations": [t.dict() for t in req.translations],
         "verification_model": req.verification_model,
         "status": "pending",
@@ -1017,7 +1017,7 @@ async def update_submission(
         "source_text": req.source_text,
         "source_lang": req.source_lang,
         "target_lang": req.target_lang,
-        "verification_rules": [r.dict() for r in req.verification_rules],
+        "verification_rules": req.verification_rules,
         "translations": [t.dict() for t in req.translations],
         "verification_model": req.verification_model,
         "status": "pending",
