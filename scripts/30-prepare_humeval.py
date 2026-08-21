@@ -70,6 +70,7 @@ for (lang1, lang2), submissions in submissions_perlangs.items():
                 if any(x["model"] == model for x in submission["translations"])
             },
             "instructions": STYLE_CESA,
+            "skippable": True,
             "item_id": submission["id"],
         }
         doc_obj_rules = copy.deepcopy(doc_obj)
@@ -83,6 +84,7 @@ for (lang1, lang2), submissions in submissions_perlangs.items():
             {
                 "text": "<b>Source text:</b> " + submission["source_text"] + STYLE_FORM,
                 "form": None,
+                "skippable": True,
             },
         ]
 
