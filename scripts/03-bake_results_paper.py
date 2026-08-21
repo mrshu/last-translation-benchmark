@@ -528,15 +528,28 @@ data_out["model_results"] = {
 }
 
 print("Processing linguistics")
-data_out["linguistics"] = collections.Counter()
+with open("data/linguistics_taxonomy.json", "r") as f:
+    data_linguistics_taxonomy = json.load(f)
+data_out["linguistics"] = collections.defaultdict(collections.Counter)
 for submission in data_submissions:
     if submission["status"] != "accept":
         continue
-    if "linguistics" in submission and "main_tags" in submission["linguistics"]:
-        tags = [tag for tag in submission["linguistics"]["main_tags"] if not tag.startswith("NEW:")]
-        data_out["linguistics"].update(tags)
+    if "linguistics" in submission:
+        for toplevel, tags in submission["linguistics"].items():
+            if toplevel == "observations":
+                continue
+            for tag in [tag.lower().replace("/", " or ") for tag in tags]:
+                if tag.startswith("new:"):
+                    continue
+                if tag in data_linguistics_taxonomy:
+                    data_out["linguistics"][toplevel][data_linguistics_taxonomy[tag].removeprefix(toplevel + "/")] += 1
+                else:
+                    print(f"Warning: unknown tag '{tag}' for toplevel '{toplevel}'")
+                    data_out["linguistics"][toplevel][tag] += 1
 
-data_out["linguistics"] = dict(data_out["linguistics"].most_common())
+# collapse low-frequency tags into "Other" category
+for toplevel in data_out["linguistics"]:
+    data_out["linguistics"][toplevel] = dict(data_out["linguistics"][toplevel].most_common()) # type: ignore
 
 print("Processing authors")
 

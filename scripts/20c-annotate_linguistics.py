@@ -4,6 +4,7 @@ import glob
 import itertools
 import json
 import os
+import random
 import urllib.parse
 
 import frozendict
@@ -13,7 +14,7 @@ import asyncio
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)) + "/..")
 
-from last_translation_benchmark.utils import get_config
+from last_translation_benchmark.utils import get_config, is_doomlooped_entropy
 
 MODEL = "google/gemini-3.1-pro-preview"
 PROMPT_FILE = "data/linguistics_prompt.txt"
@@ -37,7 +38,12 @@ async def annotate(model, prompt, sub):
             "verified": tuple(mt_obj["verified_extra"]["Gemini 3.1 Pro"]),
         })
         for mt_obj in sub["translations"]
-        if not mt_obj["model"].startswith("SKIP: ") and "verified_extra" in mt_obj and "Gemini 3.1 Pro" in mt_obj["verified_extra"]
+        if (
+            not mt_obj["model"].startswith("SKIP: ")
+            and not is_doomlooped_entropy(mt_obj["translation"])
+            and len(mt_obj["translation"]) < 10000
+            and "verified_extra" in mt_obj and "Gemini 3.1 Pro" in mt_obj["verified_extra"]
+        )
     })
     if len(translations) < 5:
         translations = list({
@@ -46,8 +52,15 @@ async def annotate(model, prompt, sub):
                 "verified": tuple(mt_obj["verified"]),
             })
             for mt_obj in sub["translations"]
-            if not mt_obj["model"].startswith("SKIP: ") and "verified" in mt_obj
+            if (
+                not mt_obj["model"].startswith("SKIP: ")
+                and not is_doomlooped_entropy(mt_obj["translation"])
+                and len(mt_obj["translation"]) < 10000
+                and "verified" in mt_obj
+            )
         })
+    while sum(len(mt_obj["translation"]) for mt_obj in translations) > 20000:
+        translations = random.Random(0).sample(translations, len(translations) - 1)
 
     translations.sort(key=lambda x: sum(x["verified"]), reverse=True)
     if len(translations) < 2:
@@ -75,9 +88,10 @@ async def annotate(model, prompt, sub):
 
     if sub.get("source_media") is not None:
         payload["source_media"] = sub["source_media"]
-    
-    response = await utils.request_post_with_backoff(url=get_config("LTB_API_URL"), json=payload, cookies=COOKIES)
+
+    response = None
     try:
+        response = await utils.request_post_with_backoff(url=get_config("LTB_API_URL"), json=payload, cookies=COOKIES)
         response.raise_for_status()
         res_text = response.json().strip("`").removeprefix("json").strip().strip("`")
         result = json.loads(res_text)
@@ -90,7 +104,8 @@ async def annotate(model, prompt, sub):
         return True
     except Exception as e:
         print(e)
-        print(f"Error in response: {response.status_code} - {response.text}")
+        if response is not None:
+            print(f"Error in response: {response.status_code} - {response.text}") # type: ignore
         return False
 
 async def main():

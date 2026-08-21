@@ -9,6 +9,8 @@ TABLE_DIR = ROOT / "data" / "language_tags" / "tables"
 RAW_TABLE_DIR = TABLE_DIR / "raw"
 SEARCH_DIR = TABLE_DIR / "search"
 
+# TODO: create data/lang2iso.json
+
 
 def clean(value: object) -> str:
     return str(value).replace("\n", " ").replace("|", "/").strip()

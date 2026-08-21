@@ -345,8 +345,8 @@ async def admin_overview(user: CurrentUser):
                     "username": f["username"],
                     "name": username_to_name.get(f["username"])
                 })
-            for f in feasible_singlematch:
-                covered_submissions.add(f["id"])
+        for f in feasible_singlematch:
+            covered_submissions.add(f["id"])
 
     submissions_without_reviewer = []
     for sub in submissions_pending:
