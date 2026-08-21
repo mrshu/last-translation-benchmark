@@ -434,18 +434,18 @@ for annotations, items in data_annotations_form:
     for annotation, item in zip(annotations, items):
         if "would it fail correct translations?" in item["text"]:
             if annotation == "This rule is too strict":
-                data_out["rules_annotation"]["recall"].append(0)
+                data_out["rules_annotation"]["precision"].append(0)
             elif annotation == "This rule is realistic and reasonable":
-                data_out["rules_annotation"]["recall"].append(1)
+                data_out["rules_annotation"]["precision"].append(1)
             elif annotation == "Not sure":
                 pass
             else:
                 raise ValueError("Unknown annotation item text: " + item["text"])
         elif "translations that are incorrect but would pass all of these verifications at the same time" in item["text"]:
             if annotation == "These rules are fine as they cover most cases":
-                data_out["rules_annotation"]["precision"].append(1)
+                data_out["rules_annotation"]["recall"].append(1)
             elif annotation == "Some incorrect translations might pass through":
-                data_out["rules_annotation"]["precision"].append(0)
+                data_out["rules_annotation"]["recall"].append(0)
             elif annotation == "Not sure":
                 pass
             else:
