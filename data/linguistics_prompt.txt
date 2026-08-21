@@ -1,0 +1,202 @@
+You are labelling one translation-verification example at a time. The input will be a JSON object containing some or all of these fields: source_lang, target_lang, source_text, source_instructions, source_media or image description, verification_rules, human_translation, and translations produced by multiple models.
+
+Your task is to assign three sets of labels:
+1. main_tags: the source/input-side phenomena that make this translation pair tricky.
+2. parallel_tags_1: the linguistic or semiotic abstraction level of the tricky part.
+3. parallel_tags_2: sparse fallback/system-diagnostic labels used only when model-output behavior makes it hard to infer the input-side trigger, or when the language is processed incorrectly before it can be translated by the architecture.
+
+Important framing: all examples are already mistranslations or translation-verification failures. Do not label an item merely as mistranslation, accuracy, wrong translation, omission, deletion, or another generic output-error category. Instead, explain what property of the input or translation setup made the example hard.
+
+REQUIRED METHOD
+
+- Use verification_rules and source/input context as the primary evidence.
+- Inspect all model outputs. Look for recurring failure patterns across models that support the labels. A repeated pattern across systems is stronger evidence than one strange output.
+- The observations field must connect three things: the verification rule, the input-side trickiness, and repeated model-output behavior.
+- Do not label by keyword matching. Reason about the source phrase in context.
+- Assign any reasonable number of labels from each set. Use fewer labels when a single precise label is enough; use multiple labels when multiple phenomena genuinely matter.
+- main_tags and parallel_tags_1 may be empty only when the case is diagnosable only through parallel_tags_2, such as pure refusal or truncation.
+- Use Input: Format, Input: Multi-modal, Output: Language, Output: Length, and all parallel_tags_2 labels sparsely and carefully. Use them only when the issue is clearly isolated there.
+- Use Input: Format only when layout, table/menu structure, sign formatting, tweet UI, price alignment, or similar formatting is crucial and a plain text version would likely avoid the problem.
+- Use Input: Multi-modal only when non-text information such as an image, gesture, sign language, screenshot, logo, or other media is required to know what the source means.
+- Use Output: Language or Output: Length only when the requested output language/variant or length/space constraint is itself being tested and no more specific label explains the failure.
+- Use Tokenization only when a tokenization, spacing, segmentation, or grouping failure is plausibly central and a more explicit tokenization guide or a different context would likely fix it.
+- Use Induced Confusion narrowly. It is for deliberately constructed, adversarial, repeated, or near-identical forms designed to confuse models and not likely to occur naturally in ordinary conversation.
+- For idioms, do not create an Idiom tag. Use combinations such as Metaphor plus Conventions or Cultural Artifact when appropriate.
+- For phonological wordplay, use Wordplay plus parallel tag Phonological, not a separate phonological-wordplay label.
+- Target Gap means the target language does not have an equivalent linguistic unit in the same set, so faithful translation requires elaboration, a larger unit, morphological-to-word conversion, or preserving the source form.
+- It is okay to invent a new label if and only if none of the existing labels works. If you do this, mark the label exactly as NEW:<short label> in the relevant label list and define it clearly in the observations field. Do not invent a new label for a generic output error or when an existing label is close enough.
+
+OUTPUT FORMAT
+
+Return one JSON object only, with this schema:
+{
+  "main_tags": [
+    "Polysemy",
+    "Style Preservation"
+  ],
+  "parallel_tags_1": [
+    "Semantic/Lexical",
+    "Pragmatic"
+  ],
+  "parallel_tags_2": [],
+  "observations": "Single field combining repeated model-output patterns and the reason these labels explain what made the input tricky. If using any NEW:<short label>, define it here."
+}
+
+Prefer the exact label strings below, do not use these terms at their face value, look at the definitions and the examples to understand what they are and check how they are distinct from another label nearby. Only add NEW:<short label> when absolutely necessary.
+
+TAXONOMY
+
+MAIN TAGS: LINGUISTIC KNOWLEDGE / ATYPICAL USE
+
+Part of Speech
+Definition: A word or form is used in an atypical grammatical role, or the correct translation depends on recognizing a non-default word class. Example: Hindi romanized ganja meaning bald is used substantively as the bald man.
+
+Gardenpath
+Definition: The source invites an initially wrong syntactic parse, scope, attachment, or structural analysis. Example: the old man the boat in English.
+
+Induced Confusion
+Definition: The example is deliberately constructed or unusually adversarial, with repeated or near-identical forms, distractors, or unnatural phrasing intended to confuse models; it would not normally be used in ordinary conversation. Example: Ganja gaanja fuk raha hai contrasts ganja as bald man with gaanja as weed.
+
+MAIN TAGS: LINGUISTIC KNOWLEDGE / SENSE-RELATED
+
+Lexical Gradation
+Definition: The broad concept may be known, but the crucial issue is intensity, specificity, strength, degree, or fine-grained nuance. Example: Hindi लापड़ vs झापड़ requires preserving a slap-intensity distinction, not just translating both as slap.
+
+Polysemy
+Definition: The same source form has multiple distinct concepts or senses, and context must select the right one. Example: Slovak babka can mean grandmother or a baked good from Polish; in a baking context it should be the pastry.
+
+Collocation
+Definition: The tricky part is a conventional word pairing or phraseological dependency such as verb-noun, preposition-noun, light-verb, or fixed construction. Example: Greek πίνεις πρέζα should be take/use/do heroin or smack, not literally drink heroin.
+
+Style Preservation
+Definition: The source tone, register, stance, sarcasm, genre, or naturalness must be preserved because changing it changes the meaning or effect. Example: Greek sarcastic Καλά κρασιά, σώθηκες should be dismissive, like good luck with that / you are doomed, not polite or literal.
+
+Domain Preservation
+Definition: The input uses domain jargon, a technical term, institutional term, or field-specific convention that must not be literalized, over-generalized, or replaced by a near-synonym. Example: MT/NLP automatic metrics should use the correct technical equivalent, not a literal or adjacent term.
+
+MAIN TAGS: LINGUISTIC KNOWLEDGE / NON-MONOLINGUAL
+
+Code-mixing
+Definition: The source intentionally mixes languages, scripts, or language varieties, and that mixed-language signal is central to the failure. Example: Hindi-English She has fashion ka shauk fs but toh bhi had mein yk? combines Hindi grammar with English internet abbreviations.
+
+False Friends
+Definition: The source contains a form that models confuse with an unrelated or misleading form in another language or variant, even though that is not its source-language meaning and not even a relevant cognate in context. Example: Greek πάρτη in για την πάρτη του is not English party.
+
+Variant Specifics
+Definition: The source depends on dialect, regional variety, sociolect, or a less common language variant; models drift to a more dominant variant. Example: Swiss German poste means buy in Hüt gangi uf d Post go Briefcouverts go poste, not post/mail.
+
+Target Gap: Morph to Words
+Definition: A cross-lingual gap specifically concerns morphological vs word-level encoding. A feature expressed or required morphologically in one language must be supplied, elaborated, or inferred in the other. Example: English past-tense verbs do not mark speaker gender, but Czech translation must infer feminine/masculine forms from later names such as Vilma/Vilém.
+
+Target Gap: Words to Phrases
+Definition: A source word, term, morpheme, or construction has no compact target-language equivalent and must be rendered by a phrase, explanation, or combination of nearby senses. Example: Chinese 意思意思 as a verb-like reduplication may require make a token gesture rather than one word.
+
+Target Gap: Not to be Translated
+Definition: The most faithful translation preserves the exact source form, usually because it is a quoted linguistic object, title, acronym, proper form, domain term, or untranslatable borrowing. Example: in Do train and rain rhyme?, train and rain must stay in English because the question is about the English word forms.
+
+MAIN TAGS: LINGUISTIC KNOWLEDGE / NON-COMPOSITIONAL OR CREATIVE
+
+Poetry
+Definition: The source is difficult because of poetic form, lineation, meter, rhyme, compression, elevated diction, or poetic tone. Example: an Arabic poetic line should preserve compact poetic effect rather than flatten into ordinary prose.
+
+Wordplay
+Definition: The source exploits punning, spelling, sound, double meaning, acronym order, or form/meaning manipulation. Example: Thai ช้าง❌ / ชั้ง✅ requires recreating a sound/spelling joke such as elephant / elefat, not merely translating wrong/right.
+
+Metaphor
+Definition: The source uses a nonliteral conceptual image that must be understood figuratively, not literally. Example: Greek the world looks rosy as a figurative drug-state image, or English the lights are on, but nobody is home.
+
+Meta Reasoning
+Definition: The meaning requires reasoning about language, wording, translation, self-reference, acronyms, spelling, or cited forms themselves. Example: This sentence is in English must change if translated into German; acronym-order jokes such as CCP/CPC require preserving the metalinguistic point.
+
+MAIN TAGS: EXTRALINGUISTIC KNOWLEDGE
+
+Slang
+Definition: The source depends on informal, youth, social-media, drug, subculture, or nonstandard usage. Example: Chinese 玩抽象 in the internet-slang sense act bizarre/absurd, not literal play abstract.
+
+Conventions
+Definition: The source or target requires social, textual, numerical, currency, honorific, orthographic, genre, institutional, or format conventions that native users know. Example: translating 19 x 27 = 513 into Arabic should use Eastern Arabic numerals and appropriate equation formatting and orthographic direction both at the equation level and in the order of things inside the equation.
+
+Named Entity
+Definition: A specific person, place, organization, brand, title, event, acronym, or logo must be recognized and handled as an entity, not translated compositionally. Example: Sarkozy, Dulliken, ICML, Prakash, WMT25, or a newspaper logo such as 参考消息.
+
+Cultural Artifact
+Definition: The input involves culture-specific food, event, institution, practice, phrase, regional item, or common word with a culturally specific sense. Example: Slovak babka as a baked good, Bengali Pohela Boishakh Rangoli, or a Swiss menu item.
+
+Internet Cultural Artifact
+Definition: The input depends on meme culture, social-media conventions, internet-native slang, online abbreviations, emoji/meme format, or fast-moving online references. Example: goblin mode, no cap, fs/yk, 67-like meme references, or Chinese internet slang 玩抽象.
+
+MAIN TAGS: EXTRALINGUISTIC CONSTRAINTS
+Use these sparsely. They should explain what made this input or translation setup tricky, not merely what happened in one random output.
+
+Output: Language
+Definition: The task is tricky because the requested target language or variant is itself the constraint being tested, and model outputs fail that constraint. Example: an Italian slang sentence requested in English, where a model outputs Italian instead of English.
+
+Output: Length
+Definition: The task is tricky because the translation must fit an explicit length or space constraint and no more specific linguistic label explains the failure. Example: a sign label with a maximum of 4 English characters where Emergency exit is too long.
+
+Input: Format
+Definition: Layout, table/menu structure, sign formatting, tweet UI, price alignment, or other textual formatting is crucial. Use only if a plain text version would likely avoid the problem. Example: a menu image where the price 7.50 applies to all side dishes, not just the adjacent word.
+
+Input: Multi-modal
+Definition: The correct translation requires non-text information such as an image, sign language, gesture, screenshot, logo, or other media or if the textual data is being messed up due to being in a multi modal setup. Example: a still image of a sign-language handshape or a Chinese Sign Language sign meaning 家.
+
+PARALLEL TAGS 1: LINGUISTIC OR SEMIOTIC LEVEL
+Use these to highlight the abstraction level that is interesting in the tricky part of the source. They enrich the main tags and are not substitutes for them.
+
+Phonological
+Definition: Sound, rhyme, rhythm, homophones, alliteration, tone, or sound-based spelling play is central. Use with Wordplay for phonological wordplay.
+
+Morphological
+Definition: Inflection, gender, number, case, noun class, verbal morphology, derivation, or morphological-vs-word encoding is central.
+
+Syntactic
+Definition: Parse, scope, attachment, word order, phrase/clause structure, ellipsis, or argument structure is central.
+
+Semantic/Lexical
+Definition: Word sense, lexical specificity, terminology, named concepts, collocation, lexical choice, or lexical gap is central.
+
+Pragmatic
+Definition: Context, speaker intent, sarcasm, tone, cultural inference, genre, politeness, social meaning, or communicative function is central.
+
+Orthography
+Definition: Script, spelling, capitalization, punctuation, numerals, symbols, acronym order, transliteration, written-form preservation, or visible textual form is central.
+
+PARALLEL TAGS 2: SPARSE LM-OUTPUT DIAGNOSTIC OR FALLBACK LABELS
+Use these only when model behavior makes it hard to understand what made the input tricky, or when the failure is clearly caused before or around translation by architecture, segmentation, safety, or instruction behavior.
+
+Irrelevant
+Definition: The output is unrelated, hallucinated, gibberish-like, semantically detached from the input, or changes the sense so badly that the input trigger cannot be confidently diagnosed.
+
+Tokenization
+Definition: The model appears to have segmented, tokenized, spaced, or grouped the input incorrectly; a more explicit tokenization or segmentation guide or a different context would likely fix the translation.
+
+Refusal
+Definition: The model refuses or declines to translate because it interprets the source as toxic, unsafe, too long, impossible, or otherwise blocked.
+
+Incomplete
+Definition: The model stops midway or omits/deletes parts of the input so that the translation is incomplete. This includes deletion and omission.
+
+COMMON CONFUSIONS TO AVOID
+
+In general, always check if there is a better label fit, for example, here are some of the close labels:
+
+- Conventions vs Lexical Gradation or Cultural Artifact-
+  Use Lexical Gradation for intensity, specificity, degree, or fine nuance. Use Conventions only for social, textual, numerical, currency, honorific, orthographic, genre, institutional, or format conventions etc. Use Cultural Artifact for culture-specific foods, practices, institutions, events, regional items, or common words with culturally specific senses.
+
+- Polysemy vs Target Gap: Words to Phrases or Part of Speech-
+  Use Polysemy only when the same source form has multiple source-language senses. Use Target Gap: Words to Phrases when the source sense is clear but the target language needs a phrase, explanation, or combination of nearby senses. Use Part of Speech when the issue is a word used in a non-default grammatical role. Do not call it Polysemy unless there are distinct conceptual senses.
+
+- Collocation vs Target Gap or Named Entity-
+  Use Collocation for conventional phraseological dependencies. Use Target Gap when the target lacks a compact equivalent and needs elaboration. Use Named Entity when recognition or preservation of a specific name, acronym, brand, title, event, place, person, organization, or logo matters. Do not use Collocation merely because the entity occurs inside a phrase.
+
+- Style Preservation vs Conventions or Named Entity-
+  Use Style Preservation for tone, register, sarcasm, stance, genre, or naturalness. Use Conventions for social/textual/numerical/honorific/format rules. If the crucial issue is recognizing or preserving the entity, use Named Entity. Add Style Preservation if tone/register is independently part of the tricky source or the verification rule.
+
+- Internet Cultural Artifact vs Wordplay or Output: Language-
+  Use Wordplay only when punning, spelling, sound, double meaning, acronym order, or form/meaning manipulation is central. Use Internet Cultural Artifact for meme, social-media, emoji, abbreviation, or online-culture knowledge. Please definitely use Output: Language when the target language or variant requested by the task is itself the tested constraint.
+
+- Input: Format vs Domain Preservation-
+  Use Input: Format when layout, menu/table/sign structure, tweet UI, price alignment, or visible formatting is what makes the input tricky. Do not replace it with Domain Preservation unless the domain term itself is the problem.
+
+- Target Gap: Morph to Words vs Target Gap: Words to Phrases:
+  Use Morph to Words only for a morphology-vs-word-level gap. Otherwise use Words to Phrases.

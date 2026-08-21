@@ -278,24 +278,32 @@ data_submissions_textonly = [
     x for x in data_submissions_accepted
     if x["source_media"] is None and x["source_instructions"] is None
 ]
+
+def _models_are_bad(sub):
+    # passing at most half of the models
+    # pass if at least one verifier is satisfied
+    subs = [x for x in sub["translations"] if x["model"] != "human"]
+    verified = [
+        any(all(vl) for vl in mt_obj.get("verified_extra", {}).values() if all(v is not None for v in vl))
+        for mt_obj in subs
+    ]
+    return statistics.mean(verified) <= 0.5
+
+def _human_is_ok(sub):
+    obj = next((x for x in sub["translations"] if x["model"] == "human"), None)
+    # we should always have human
+    if obj is None:
+        return False
+
+    verified = obj.get("verified_extra", {})
+    verified = [all(vl) for vl in verified.values() if all(v is not None for v in vl)]
+    if not verified:
+        return False
+    return statistics.mean(verified) >= 0.75
+
 data_submissions_v1 = [
     x for x in data_submissions_textonly
-    if (
-        # passing at most half of the models
-        # pass if at least one verifier is satisfied
-        statistics.mean(
-            any(all(vl) for vl in mt_obj.get("verified_extra", {}).values() if all(v is not None for v in vl))
-            for mt_obj in x["translations"]
-            if mt_obj["model"] != "human"
-        ) <= 0.5
-    ) and (
-        # pass all verifiers by human
-        all(
-            all(all(vl) for vl in mt_obj.get("verified_extra", {}).values() if any(v is not None for v in vl))
-            for mt_obj in x["translations"]
-            if mt_obj["model"] == "human"
-        )
-    )
+    if _models_are_bad(x) and _human_is_ok(x)
 ]
 print("- Original:", len(data_submissions))
 print("- Accepted:", len(data_submissions_accepted))
@@ -379,8 +387,10 @@ data_out["model_selfbias"] = {
 
 print("Processing human annotations")
 
-with open("data/annotations.json", "r") as f:
-    data_annotations_raw = json.load(f)
+data_annotations_raw = {}
+for v in ["v0", "v1"]:
+    with open(f"data/annotations_{v}.json", "r") as f:
+        data_annotations_raw |= json.load(f)
 data_annotations = [
     (item["annotation"][0], item["item"][0])
     for campaign_data in data_annotations_raw.values()
@@ -391,7 +401,7 @@ data_annotations_form = [
     (item["annotation"][1:], item["item"][1:])
     for campaign_data in data_annotations_raw.values()
     for item in campaign_data
-    if len(item["annotation"]) > 1
+    if len(item["annotation"]) > 1 and "item" in item
 ]
 for annotation, item in data_annotations:
     for model, results in annotation.items():
@@ -517,6 +527,16 @@ data_out["model_results"] = {
     if model in WHITELIST_MT
 }
 
+print("Processing linguistics")
+data_out["linguistics"] = collections.Counter()
+for submission in data_submissions:
+    if submission["status"] != "accept":
+        continue
+    if "linguistics" in submission and "main_tags" in submission["linguistics"]:
+        tags = [tag for tag in submission["linguistics"]["main_tags"] if not tag.startswith("NEW:")]
+        data_out["linguistics"].update(tags)
+
+data_out["linguistics"] = dict(data_out["linguistics"].most_common())
 
 print("Processing authors")
 
@@ -528,21 +548,43 @@ username_to_name_affiliation = {
 # add contributors
 user_points = {}
 for s in data_submissions:
-    # check if date is be fore September 1, 2026
+    # check if date is before September 1, 2026
     if datetime.strptime(s["created_at"].split(" ")[0], "%Y-%m-%d") >= datetime(2026, 9, 1):
         continue
+
+    reviewer = username_to_name_affiliation.get(s.get("reviewed_by"), None)
+    if reviewer is not None:
+        user_points[reviewer] = user_points.get(reviewer, 0) + 0.1
+
     # consider pending submissions fine
-    if s["status"] not in {"accept", "pending"}:
+    if s["status"] != "accept":
         continue
 
     contributor = username_to_name_affiliation.get(s.get("username"), None)
-    reviewer = username_to_name_affiliation.get(s.get("reviewed_by"), None)
 
     if contributor is not None:
         user_points[contributor] = user_points.get(contributor, 0) + 1
 
     if reviewer is not None:
         user_points[reviewer] = user_points.get(reviewer, 0) + 0.2
+
+for s in data_submissions:
+    # check if date is before September 1, 2026
+    if datetime.strptime(s["created_at"].split(" ")[0], "%Y-%m-%d") >= datetime(2026, 9, 1):
+        continue
+    # consider pending submissions fine
+    if s["status"] != "pending":
+        continue
+
+    contributor = username_to_name_affiliation.get(s.get("username"), None)
+
+    if contributor is not None:
+        if user_points.get(contributor, 0) >= AUTHORSHIP_POINTS_MIN:
+            # if above the threshold, give less points for pending submissions
+            user_points[contributor] = user_points.get(contributor, 0) + 0.2
+        else:
+            # still give "full" points for pending submissions if below the threshold
+            user_points[contributor] = user_points.get(contributor, 0) + 1
 
 # sorting will happen in Typst but we can "pre-sort"
 data_out["contributors"] = [
