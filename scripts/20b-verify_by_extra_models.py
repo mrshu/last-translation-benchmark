@@ -118,9 +118,7 @@ async def main():
         else:
             source_text_display = sub["source_text"]
 
-        update_pbar()
-
-        async def _process_model_all(mt_obj) -> bool:
+        async def _process_model_all(mt_obj, force_cache=False) -> bool:
             if mt_obj["model"].startswith("SKIP: "):
                 return False
 
@@ -150,7 +148,7 @@ async def main():
                     payload = {
                         "model": model["model"],
                         "prompt": prompt,
-                        "cache": CACHE,
+                        "cache": force_cache or CACHE,
                     }
                     if sub["source_media"]:
                         payload["source_media"] = sub["source_media"]
@@ -215,7 +213,7 @@ async def main():
                 payload = {
                     "model": model["model"],
                     "prompt": prompt,
-                    "cache": CACHE,
+                    "cache": force_cache or CACHE,
                 }
                 if sub["source_media"]:
                     payload["source_media"] = sub["source_media"]
@@ -274,14 +272,16 @@ async def main():
             if mt_obj["translation"] not in translations_to_mt_i:
                 translations_to_mt_i[mt_obj["translation"]] = mt_i
 
-        print(f"We have {len(sub['translations'])} translations, {len(translations_to_mt_i)} unique translations")
+        print(f"#{sub['id']}: We have {len(sub['translations'])} translations, {len(translations_to_mt_i)} unique translations")
         tasks_unique = await asyncio.gather(*[
             _process_model_all(mt_obj)
             for mt_obj_i, mt_obj in enumerate(sub["translations"])
             if mt_obj_i in translations_to_mt_i.values()
         ])
-        
-        tasks_all = await asyncio.gather(*[_process_model_all(mt_obj) for mt_obj in sub["translations"]])
+
+        # even if we have cache turned off, we want to enforce it because in the second round
+        # we should reuse previous results in all scenarios
+        tasks_all = await asyncio.gather(*[_process_model_all(mt_obj, force_cache=True) for mt_obj in sub["translations"]])
         return any(tasks_unique) or any(tasks_all)
 
 

@@ -214,7 +214,7 @@ data_out["proportion_instructions"] = statistics.mean([x["source_instructions"] 
 data_out["source_text_chars"] = statistics.mean([len(x["source_text"]) for x in data_submissions if x["status"] == "accept" and "English" in x["source_lang"]])
 data_out["source_text_words"] = statistics.mean([len(x["source_text"].split()) for x in data_submissions if x["status"] == "accept" and "English" in x["source_lang"]])
 data_out["verification_rules"] = statistics.mean([len(x["verification_rules"]) for x in data_submissions if x["status"] == "accept"])
-print(collections.Counter(len(x["verification_rules"]) for x in data_submissions if x["status"] == "accept"))
+print("Verification rules count:", collections.Counter(len(x["verification_rules"]) for x in data_submissions if x["status"] == "accept").most_common())
 
 
 WHITELIST_LLM = {
