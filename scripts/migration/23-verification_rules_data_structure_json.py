@@ -1,6 +1,7 @@
 import json
 import os
 
+
 def migrate_json(filepath):
     if not os.path.exists(filepath):
         print(f"File {filepath} not found.")

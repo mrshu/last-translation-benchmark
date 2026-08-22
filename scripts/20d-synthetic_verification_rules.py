@@ -1,9 +1,11 @@
+import argparse
 import asyncio
 import collections
 import json
 import os
 import re
 import urllib.parse
+
 import tqdm
 import utils
 
@@ -32,7 +34,13 @@ MODELS = [
     {"name": "GPT-5.4 Mini", "model": "openai/gpt-5.4-mini", "support_image": True, "support_audio": False, "support_video": False},
 ]
 DATA_FILE = "data/submissions.json"
-CHUNK_SIZE = 50
+
+args = argparse.ArgumentParser()
+args.add_argument("--chunks", type=int, default=50)
+args.add_argument("--no-cache", action="store_true")
+args = args.parse_args()
+CHUNK_SIZE = args.chunks
+CACHE = not args.no_cache
 
 COOKIES = {
     "ltb_user": urllib.parse.quote(get_config("LTB_API_USER")),
@@ -108,6 +116,7 @@ async def main():
             payload = {
                 "model": model["model"],
                 "prompt": get_prompt(sub),
+                "cache": CACHE,
             }
             if sub["source_media"]:
                 payload["source_media"] = sub["source_media"]

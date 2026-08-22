@@ -1,7 +1,7 @@
 # %%
 
-import glob
-import itertools
+import argparse
+import asyncio
 import json
 import os
 import random
@@ -10,7 +10,6 @@ import urllib.parse
 import frozendict
 import tqdm
 import utils
-import asyncio
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)) + "/..")
 
@@ -25,7 +24,12 @@ COOKIES = {
     "ltb_token": urllib.parse.quote(get_config("LTB_API_TOKEN"))
 }
 
-CHUNK_SIZE = 20
+args = argparse.ArgumentParser()
+args.add_argument("--chunks", type=int, default=20)
+args.add_argument("--no-cache", action="store_true")
+args = args.parse_args()
+CHUNK_SIZE = args.chunks
+CACHE = not args.no_cache
 
 async def annotate(model, prompt, sub):
     if "linguistics" in sub:
@@ -84,6 +88,7 @@ async def annotate(model, prompt, sub):
             + "\n\n-----\n\n"
             + json.dumps(payload_example, ensure_ascii=False, indent=2)
         ),
+        "cache": CACHE,
     }
 
     if sub.get("source_media") is not None:
@@ -123,14 +128,24 @@ async def main():
     tokens = utils.estimate_tokens(prompt) * 2500
     print(f"Annotating with {MODEL} costs ${cost_input*tokens + cost_output*tokens:.2f}")
 
-    for chunk_i in tqdm.tqdm(range(0, len(submissions_accepted), CHUNK_SIZE), unit="chunks"):
+    pbar = tqdm.tqdm(
+        submissions_accepted,
+        bar_format="{desc}{bar}[{percentage:3.0f}%, {elapsed}<{remaining}]",
+        ascii="  ",
+    )
+
+    for chunk_i in range(0, len(submissions_accepted), CHUNK_SIZE):
         sub_chunk = submissions_accepted[chunk_i:chunk_i+CHUNK_SIZE]
+        pbar.set_description(f"Processing #{sub_chunk[0]["id"]}--#{sub_chunk[-1]["id"]}")
+
         sub_changed = any(await asyncio.gather(*[annotate(MODEL, prompt, sub) for sub in sub_chunk]))
 
         # re-save *everything* after each chunk
         if sub_changed:
             with open(DATA_FILE, "w") as f:
                 json.dump(submissions, f, indent=2, ensure_ascii=False)
+        
+        pbar.update(CHUNK_SIZE)
 
     with open(DATA_FILE, "w") as f:
         json.dump(submissions, f, indent=2, ensure_ascii=False)

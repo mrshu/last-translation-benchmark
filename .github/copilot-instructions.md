@@ -47,7 +47,7 @@ python3 server
 
 - Python ≥3.12
 - Node.js 18
-- Always run `ruff check` and `ruff check --select=I server` before committing Python changes
+- Always run `ruff check` before committing Python changes
 - Web builds must succeed before committing frontend changes
 - Tests in `server/tests/` must pass
 

@@ -1,5 +1,6 @@
 # %%
 
+import collections
 import json
 import os
 import urllib.parse
@@ -29,23 +30,83 @@ req.raise_for_status()
 submissions_new = req.json()
 
 submissions_fname = "data/submissions.json"
-submissions_old = json.load(open(submissions_fname)) if os.path.exists(submissions_fname) else []
+if os.path.exists(submissions_fname):
+    with open(submissions_fname, "r") as f:
+        submissions_old = json.load(f)
+else:
+    submissions_old = []
 submissions_id_to_obj = {s["id"]: s for s in submissions_old}
 
-data_count_new = 0
-data_count_updated = 0
-for sub_obj in submissions_new:
-    if sub_obj["id"] not in submissions_id_to_obj:
-        if sub_obj["status"] == "accept":
-            data_count_new += 1
-        submissions_id_to_obj[sub_obj["id"]] = sub_obj
-    elif submissions_id_to_obj[sub_obj["id"]]["status"] != "accept":
-        if sub_obj["status"] == "accept":
-            data_count_updated += 1
-        submissions_id_to_obj[sub_obj["id"]] = sub_obj
+def is_same(sub_obj_old, sub_obj_new):
+    return (
+        sub_obj_old["status"] == sub_obj_new["status"]
+        and sub_obj_old["source_text"] == sub_obj_new["source_text"]
+        and sub_obj_old["source_media"] == sub_obj_new["source_media"]
+        and sub_obj_old["source_instructions"] == sub_obj_new["source_instructions"]
+        and sub_obj_old["source_lang"] == sub_obj_new["source_lang"]
+        and sub_obj_old["target_lang"] == sub_obj_new["target_lang"]
+        and sub_obj_old["verification_rules"] == sub_obj_new["verification_rules"]
+        and (
+            next(mt_obj["translation"] for mt_obj in sub_obj_old["translations"] if mt_obj["model"] == "human")
+            == next(mt_obj["translation"] for mt_obj in sub_obj_new["translations"] if mt_obj["model"] == "human")
+        )
+    )
 
-print("Added new", data_count_new)
-print("Accepted old", data_count_updated)
+count_new_accepted = 0
+count_new_other = 0
+count_old_other_accept = 0
+count_old_other_other = 0
+count_old_accept_other = 0
+count_old_accept_accept = 0
+count_noop_accept_accept = 0
+count_noop_other_other = 0
+for sub_obj_new in submissions_new:
+    if sub_obj_new["id"] not in submissions_id_to_obj:
+        # we are adding previously unseen example, proceed
+        if sub_obj_new["status"] == "accept":
+            count_new_accepted += 1
+        else:
+            count_new_other += 1
+
+        submissions_id_to_obj[sub_obj_new["id"]] = sub_obj_new
+    else:
+        sub_obj_old = submissions_id_to_obj[sub_obj_new["id"]]
+        # our example already exists, depends on the status
+        if sub_obj_old["status"] == "accept" and sub_obj_new["status"] == "accept":
+            # both are accepted, check if sources match
+            if is_same(sub_obj_old, sub_obj_new):
+                count_noop_accept_accept += 1
+            else:
+                # uh-oh,something changed! overwrite
+                count_old_accept_accept += 1
+                submissions_id_to_obj[sub_obj_new["id"]] = sub_obj_new
+        elif sub_obj_old["status"] == "accept" and sub_obj_new["status"] != "accept":
+            # old is accepted, new is not accepted, overwrite
+            count_old_accept_other += 1
+            submissions_id_to_obj[sub_obj_new["id"]] = sub_obj_new
+        elif sub_obj_old["status"] != "accept" and sub_obj_new["status"] == "accept":
+            # old is not accepted, new is accepted, overwrite
+            count_old_other_accept += 1
+            submissions_id_to_obj[sub_obj_new["id"]] = sub_obj_new
+        elif sub_obj_old["status"] != "accept" and sub_obj_new["status"] != "accept":
+            # old is not accepted, new is not accepted, overwrite
+            if is_same(sub_obj_old, sub_obj_new):
+                count_noop_other_other += 1
+            else:
+                count_old_other_other += 1
+                submissions_id_to_obj[sub_obj_new["id"]] = sub_obj_new
+
+print("Added new with accepted", count_new_accepted)
+print("Added new with other   ", count_new_other)
+print("Updated old from accept to other", count_old_accept_other)
+print("Updated old from accept to accept", count_old_accept_accept)
+print("Updated old from other to accepted", count_old_other_accept)
+print("Updated old from other to other", count_old_other_other)
+print("Nothing changed accept-accept", count_noop_accept_accept)
+print("Nothing changed other-other", count_noop_other_other)
+
+print("\nBefore:", collections.Counter([s["status"] for s in submissions_old]))
+print("After:", collections.Counter([s["status"] for s in submissions_id_to_obj.values()]))
 
 merged = sorted(submissions_id_to_obj.values(), key=lambda x: x["id"])
 with open(submissions_fname, "w") as f:

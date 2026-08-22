@@ -1,8 +1,8 @@
+import argparse
 import asyncio
 import collections
 import json
 import os
-import random
 import re
 import urllib.parse
 
@@ -28,7 +28,12 @@ COOKIES = {
     "ltb_token": urllib.parse.quote(get_config("LTB_API_TOKEN"))
 }
 
-CACHE = True
+args = argparse.ArgumentParser()
+args.add_argument("--chunks", type=int, default=2)
+args.add_argument("--no-cache", action="store_true")
+args = args.parse_args()
+CHUNK_SIZE = args.chunks
+CACHE = not args.no_cache
 
 def get_prompt_verify(source_text: str, translation: str, rule: str, source_media: str | None) -> str:
     prompt = f"Your goal is to verify whether a translation fulfills a criterion.\n\nCriterion: {rule}\n\nInput: {source_text}\n\nTranslation to verify: {translation}\n\nOutput only pass or fail and nothing else."
@@ -89,31 +94,30 @@ async def main():
 
     def update_pbar():
         model_agg = collections.defaultdict(list)
-        for model_mt, model_llm, task in pbar_tasks:
+        for sub_id, model_mt, model_llm, task in pbar_tasks:
             model_agg[model_llm].append(task)
         model_agg = list(model_agg.items())
         model_agg.sort(key=lambda x: len(x[1]), reverse=True)
         pbar.set_description(f"{pbar_desc} with {', '.join(f'{model} ({len(tasks)})' for model, tasks in model_agg)}")
 
-    for sub in pbar:
-        # skip if more than 3 rules
-        if len(sub["verification_rules"]) > 3:
-            continue
-
+    async def process_sub(sub) -> bool:
         # skip items that have source media for now
         if sub["source_media"]:
-            continue
+            return False
         
+        # skip if more than 3 rules
+        # if len(sub["verification_rules"]) > 3:
+        #     continue
+
         # take 50% of submissions randomly for now
-        if 1.0 < random.Random(sub["id"]).random():
-            continue
+        # if 1.0 < random.Random(sub["id"]).random():
+        #     continue
 
         if not sub["source_text"] and sub["source_media"]:
             source_text_display = "(attached)"
         else:
             source_text_display = sub["source_text"]
 
-        pbar_desc = f"Verifying #{sub['id']}"
         update_pbar()
 
         async def _process_model_all(mt_obj) -> bool:
@@ -151,7 +155,7 @@ async def main():
                     if sub["source_media"]:
                         payload["source_media"] = sub["source_media"]
 
-                    progress_id = (mt_obj["model"], model['name'], f"§{rule_i}")
+                    progress_id = (sub["id"], mt_obj["model"], model['name'], f"§{rule_i}")
                     try:
                         pbar_tasks.add(progress_id)
                         update_pbar()
@@ -216,7 +220,7 @@ async def main():
                 if sub["source_media"]:
                     payload["source_media"] = sub["source_media"]
 
-                progress_id = (mt_obj["model"], model['name'], "j")
+                progress_id = (sub["id"], mt_obj["model"], model['name'], "j")
                 result = None
                 try:
                     pbar_tasks.add(progress_id)
@@ -278,11 +282,24 @@ async def main():
         ])
         
         tasks_all = await asyncio.gather(*[_process_model_all(mt_obj) for mt_obj in sub["translations"]])
-        sub_changed = any(tasks_unique) or any(tasks_all)
+        return any(tasks_unique) or any(tasks_all)
 
+
+    # chunk to multiple submissions at a time to avoid overloading the API
+    for chunk_i in range(0, len(submissions_accepted), CHUNK_SIZE):
+        # we're modifying accepted submissions but they point to the same object
+        # this helps keep chunks similarly full
+        sub_chunk = submissions_accepted[chunk_i:chunk_i+CHUNK_SIZE]
+
+        pbar_desc = f"Processing #{sub_chunk[0]["id"]}--#{sub_chunk[-1]["id"]}"
+        update_pbar()
+        sub_changed = any(await asyncio.gather(*[process_sub(sub) for sub in sub_chunk]))
         if sub_changed:
+            # save on each finalized changed submission
             with open(DATA_FILE, "w") as f:
                 json.dump(submissions, f, indent=2, ensure_ascii=False)
+
+        pbar.update(CHUNK_SIZE)
 
     # save finally
     with open(DATA_FILE, "w") as f:

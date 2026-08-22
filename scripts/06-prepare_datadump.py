@@ -1,8 +1,9 @@
 # %%
 
 import json
-from compact_json import Formatter
 import os
+
+from compact_json import Formatter
 
 os.chdir(os.path.dirname(__file__)+"/..")
 

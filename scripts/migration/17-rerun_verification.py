@@ -9,8 +9,7 @@ from last_translation_benchmark.services import verify_llm
 
 async def get_matching_submissions():
     try:
-        async with _open_db() as db:
-            async with db.execute("SELECT id, data FROM submissions") as cursor:
+        async with _open_db() as db, db.execute("SELECT id, data FROM submissions") as cursor:
                 rows = await cursor.fetchall()
     except Exception as e:
         print("No submissions table:", e)

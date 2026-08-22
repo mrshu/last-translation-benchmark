@@ -45,4 +45,8 @@ build-backend = "setuptools.build_meta"
 package-dir = { last_translation_benchmark = "server" }
 packages = ["last_translation_benchmark"]
 
+[tool.ruff.lint]
+ignore = ["BLE001", "TRY002", "ASYNC230"]
+
+
 # pip install -e .

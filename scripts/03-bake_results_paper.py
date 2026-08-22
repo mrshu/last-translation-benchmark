@@ -214,6 +214,7 @@ data_out["proportion_instructions"] = statistics.mean([x["source_instructions"] 
 data_out["source_text_chars"] = statistics.mean([len(x["source_text"]) for x in data_submissions if x["status"] == "accept" and "English" in x["source_lang"]])
 data_out["source_text_words"] = statistics.mean([len(x["source_text"].split()) for x in data_submissions if x["status"] == "accept" and "English" in x["source_lang"]])
 data_out["verification_rules"] = statistics.mean([len(x["verification_rules"]) for x in data_submissions if x["status"] == "accept"])
+print(collections.Counter(len(x["verification_rules"]) for x in data_submissions if x["status"] == "accept"))
 
 
 WHITELIST_LLM = {
@@ -403,13 +404,16 @@ data_annotations_form = [
     for item in campaign_data
     if len(item["annotation"]) > 1 and "item" in item
 ]
+print(f"Got {len(data_annotations)} score items")
+print(f"Got {len(data_annotations_form)} form items")
 for annotation, item in data_annotations:
     for model, results in annotation.items():
         if "considering these rules" in item.get("instructions", ""):
             kind = "with rules"
         else:
             kind = "standalone"
-        data_models[model]["HUMAN: " + kind].append(results["score"])   
+        if results["score"] is not None:
+            data_models[model]["HUMAN: " + kind].append(results["score"])   
 
 data_out["rules_annotation"] = {
     "recall": [],

@@ -1,7 +1,10 @@
 # %%
 
+# ruff: noqa: SIM115
+
 raise NotImplementedError("This script is deprecated. Use scripts/20c-annotate_linguistics.py instead.")
 
+import asyncio
 import glob
 import itertools
 import json
@@ -11,7 +14,6 @@ import urllib.parse
 import frozendict
 import tqdm
 import utils
-import asyncio
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)) + "/..")
 
@@ -139,7 +141,7 @@ async def main():
             sub for sub in submissions
             if (
                 sub["status"] == "accept"
-                and [mt_obj["translation"] for mt_obj in sub["translations"] if mt_obj["model"] == "human"][0] == line["human_translation"]
+                and next(mt_obj["translation"] for mt_obj in sub["translations"] if mt_obj["model"] == "human") == line["human_translation"]
                 and sub["source_lang"] == line["source_lang"] and sub["target_lang"] == line["target_lang"]
             )
         ]
