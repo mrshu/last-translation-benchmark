@@ -1,13 +1,13 @@
 # %%
 
 import collections
+import datetime
 import itertools
 import json
 import math
 import os
 import random
 import statistics
-from datetime import datetime
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -136,13 +136,13 @@ def date_to_delta(date_str):
     # remove micros?
     if date_str.count(":") == 2:
         date_str = date_str.rsplit(":", 1)[0]
-    date_obj = datetime.strptime(date_str, "%Y-%m-%d %H:%M")
-    delta = date_obj - datetime(2026, 5, 1)
+    date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d %H:%M").astimezone(datetime.UTC)
+    delta = date_obj - datetime.datetime(2026, 5, 1, tzinfo=datetime.UTC)
     return delta.days
 
 # number of accepted, rejected, pending submissions
 status_count = collections.Counter()
-delta_today = date_to_delta(datetime.now().strftime("%Y-%m-%d %H:%M"))
+delta_today = date_to_delta(datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d %H:%M"))
 dates_pending = [0]*(delta_today+1)
 dates_accepted = [0]*(delta_today+1)
 dates_returned = [0]*(delta_today+1)
@@ -568,7 +568,10 @@ username_to_name_affiliation = {
 user_points = {}
 for s in data_submissions:
     # check if date is before September 1, 2026
-    if datetime.strptime(s["created_at"].split(" ")[0], "%Y-%m-%d") >= datetime(2026, 9, 1):
+    if (
+        datetime.datetime.strptime(s["created_at"].split(" ")[0], "%Y-%m-%d").astimezone(datetime.UTC)
+        >= datetime.datetime(2026, 9, 1, tzinfo=datetime.UTC)
+    ):
         continue
 
     reviewer = username_to_name_affiliation.get(s.get("reviewed_by"), None)
@@ -589,7 +592,10 @@ for s in data_submissions:
 
 for s in data_submissions:
     # check if date is before September 1, 2026
-    if datetime.strptime(s["created_at"].split(" ")[0], "%Y-%m-%d") >= datetime(2026, 9, 1):
+    if (
+        datetime.datetime.strptime(s["created_at"].split(" ")[0], "%Y-%m-%d").astimezone(datetime.UTC)
+        >= datetime.datetime(2026, 9, 1, tzinfo=datetime.UTC)
+    ):
         continue
     # consider pending submissions fine
     if s["status"] != "pending":

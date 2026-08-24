@@ -836,7 +836,7 @@ async def translate_submission(req: TranslateReq, user: CurrentUser):
                 "error": None,
                 "time": round(time.time() - time_start, 1),
             }
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             # skip unsupported models
             if str(exc).startswith("No endpoints found that support"):
                 return {"model": name, "translation": None, "error": None}

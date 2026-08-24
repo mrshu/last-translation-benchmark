@@ -25,7 +25,7 @@ Best, the LTB team
 def _permissive_strptime(date_str: str) -> datetime.datetime:
     for f in ["%Y-%m-%d %H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"]:
         try:
-            return datetime.datetime.strptime(date_str, f)
+            return datetime.datetime.strptime(date_str, f).astimezone(datetime.UTC)
         except ValueError:
             continue
     raise ValueError(f"Unable to parse date string: {date_str}")
@@ -65,7 +65,7 @@ async def main():
         # Only consider returned submissions
         subs = [s for s in subs if s.get("status") == "return"]
         # Only consider submissions with last activity being more than 7 days
-        subs = [s for s in subs if (datetime.datetime.now() - _permissive_strptime(s.get("created_at"))).days > 7]
+        subs = [s for s in subs if (datetime.datetime.now(tz=datetime.UTC) - _permissive_strptime(s.get("created_at"))).days > 7]
 
         # They must have at least one submission
         if not subs:

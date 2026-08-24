@@ -1,7 +1,7 @@
 # %%
 
+import datetime
 import json
-from datetime import datetime
 import os
 
 os.chdir(os.path.dirname(__file__)+"/..")
@@ -19,7 +19,10 @@ for submission in submissions:
     # TODO test/dev split
 
     # check if date is before September 1, 2026
-    if datetime.strptime(submission["created_at"].split(" ")[0], "%Y-%m-%d") >= datetime(2026, 9, 1):
+    if (
+        datetime.datetime.strptime(submission["created_at"].split(" ")[0], "%Y-%m-%d").astimezone(datetime.UTC)
+        >= datetime.datetime(2026, 9, 1, tzinfo=datetime.UTC)
+    ):
         continue
 
     submission_new = {
