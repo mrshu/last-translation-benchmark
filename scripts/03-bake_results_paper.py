@@ -547,10 +547,11 @@ for submission in data_submissions:
             for tag in [tag.lower().replace("/", " or ") for tag in tags]:
                 tag = tag.removeprefix("new:").strip()
                 if tag in data_linguistics_taxonomy:
+                    toplevel = data_linguistics_taxonomy[tag].split("/")[0]
                     data_out["linguistics"][toplevel][data_linguistics_taxonomy[tag].removeprefix(toplevel + "/")] += 1
                 else:
                     print(f"Warning: unknown tag '{tag}' for toplevel '{toplevel}'")
-                    data_out["linguistics"][toplevel][tag] += 1
+                    data_out["linguistics"]["unclassified"][tag] += 1
 
 # collapse low-frequency tags into "Other" category
 for toplevel in data_out["linguistics"]:
