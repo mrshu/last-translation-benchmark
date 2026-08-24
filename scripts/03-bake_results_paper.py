@@ -16,6 +16,8 @@ from lingtypology import glottolog
 
 os.chdir(os.path.dirname(os.path.abspath(__file__))+ "/../")
 
+from last_translation_benchmark.utils import save_compact_json
+
 os.makedirs("computed/", exist_ok=True)
 
 AUTHORSHIP_POINTS_MIN = 10
@@ -543,8 +545,7 @@ for submission in data_submissions:
             if toplevel == "observations":
                 continue
             for tag in [tag.lower().replace("/", " or ") for tag in tags]:
-                if tag.startswith("new:"):
-                    continue
+                tag = tag.removeprefix("new:").strip()
                 if tag in data_linguistics_taxonomy:
                     data_out["linguistics"][toplevel][data_linguistics_taxonomy[tag].removeprefix(toplevel + "/")] += 1
                 else:
@@ -613,5 +614,4 @@ data_out["contributors"].sort(key=lambda x: (x["points"], x["name"]), reverse=Tr
 
 print("Saving")
 
-with open("computed/baked.json", "w") as f:
-    json.dump(data_out, f, indent=2, ensure_ascii=False)
+save_compact_json(data_out, "computed/baked.json")

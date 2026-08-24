@@ -235,3 +235,15 @@ def join_english(v) -> str:
     if len(v) == 1:
         return v[0]
     return f"{', '.join(v[:-1])} and {v[-1]}"
+
+
+def save_compact_json(data: Any, path: str) -> None:
+    from compact_json import Formatter
+    # max_inline_length controls the maximum character width for one-line arrays
+    formatter = Formatter(
+        indent_spaces=2,
+        max_inline_length=200,
+        ensure_ascii=False
+    )
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(formatter.serialize(data)) # type: ignore

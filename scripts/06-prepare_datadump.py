@@ -1,20 +1,27 @@
 # %%
 
 import json
+from datetime import datetime
 import os
 
-from compact_json import Formatter
-
 os.chdir(os.path.dirname(__file__)+"/..")
+
+from last_translation_benchmark.utils import save_compact_json
 
 with open("data/submissions.json", "r") as f:
     submissions = json.load(f)
 
-# TODO: filter to v1
+
 
 submissions = [s for s in submissions if s["status"] == "accept"]
 submissions_new: list[dict] = []
 for submission in submissions:
+    # TODO test/dev split
+
+    # check if date is before September 1, 2026
+    if datetime.strptime(submission["created_at"].split(" ")[0], "%Y-%m-%d") >= datetime(2026, 9, 1):
+        continue
+
     submission_new = {
         "id": submission["id"],
         "source_text": submission["source_text"],
@@ -40,20 +47,9 @@ for submission in submissions:
         "created_at": submission["created_at"],
         "linguistics": submission.get("linguistics", {}),
     }
-    if "observations" in submission_new["linguistics"]:
-        submission_new["linguistics"].pop("observations", None)
+    submission_new["linguistics"].pop("observations", None)
 
     submissions_new.append(submission_new)
 
-# with open("data/submissions_anonymous.json", "w") as f:
-#     json.dump(submissions_new, f, indent=2, ensure_ascii=False)
 
-# max_inline_length controls the maximum character width for one-line arrays
-formatter = Formatter(
-    indent_spaces=2,
-    max_inline_length=200,
-    ensure_ascii=False
-)
-
-with open("data/submissions_anonymous.json", "w", encoding="utf-8") as f:
-    f.write(formatter.serialize(submissions_new)) # type: ignore
+save_compact_json(submissions_new, "data/submissions_anonymous.json")
