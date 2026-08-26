@@ -5,6 +5,7 @@ import datetime
 import itertools
 import json
 import math
+from operator import le
 import os
 import random
 import statistics
@@ -444,7 +445,7 @@ for annotations, items in data_annotations_form:
             elif annotation == "This rule is realistic and reasonable":
                 data_out["rules_annotation"]["precision"].append(1)
             elif annotation == "Not sure":
-                pass
+                data_out["rules_annotation"]["precision"].append(None)
             else:
                 raise ValueError("Unknown annotation item text: " + item["text"])
         elif "translations that are incorrect but would pass all of these verifications at the same time" in item["text"]:
@@ -453,14 +454,14 @@ for annotations, items in data_annotations_form:
             elif annotation == "Some incorrect translations might pass through":
                 data_out["rules_annotation"]["recall"].append(0)
             elif annotation == "Not sure":
-                pass
+                data_out["rules_annotation"]["recall"].append(None)
             else:
                 raise ValueError("Unknown annotation item text: " + item["text"])
         else:
             raise ValueError("Unknown annotation item text: " + item["text"])
 
 data_out["rules_annotation"] = {
-    k: statistics.mean(v)
+    k: {"ok": v.count(1)/len(v), "not ok": v.count(0)/len(v), "unsure": v.count(None)/len(v)}
     for k, v in data_out["rules_annotation"].items()
 }
 
