@@ -54,8 +54,8 @@ def audio_format_from_mime(mime: str) -> str:
     mime = mime.strip().lower()
     return AUDIO_MIME_TO_FORMAT.get(mime, mime.split("/")[-1])
 
-
-def translate_google(
+@sqlite_cache()
+def translate_google_simple(
     text: str,
     src_lang: str,
     tgt_lang: str,
@@ -83,7 +83,6 @@ async def translate_google_with_api(
     tgt_lang: str,
     source_media: str | None = None,
     source_instructions: str | None = None,
-    cache: bool = True,
 ) -> str | None:
     source_code = NAME_TO_CODE_GOOGLE.get(src_lang.lower(), None)
     target_code = NAME_TO_CODE_GOOGLE.get(tgt_lang.lower(), None)
@@ -102,12 +101,12 @@ async def translate_google_with_api(
 
     response = await HTTP_CLIENT.post(
         "https://translation.googleapis.com/language/translate/v2",
+        params={"key": api_key},
         data={
             "q": text,
             "source": source_code,
             "target": target_code,
             "format": "text",
-            "key": api_key,
         },
     )
     response.raise_for_status()

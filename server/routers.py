@@ -52,7 +52,7 @@ from .models import (
 )
 from .services import (
     call_llm_multimodal,
-    translate_google,
+    translate_google_with_api,
     translate_lara,
     translate_openrouter,
     verify_llm,
@@ -747,7 +747,7 @@ def _filter_reviewer_submissions(
 
 MODEL_LIBRARY = [
     {"name": "Lara", "fn": translate_lara, "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
-    {"name": "Google Translate", "fn": translate_google, "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Google Translate", "fn": translate_google_with_api, "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
     {"name": "Gemini 3.1 Pro", "fn": functools.partial(translate_openrouter, model="google/gemini-3.1-pro-preview"), "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
     {"name": "Gemma 4", "fn": functools.partial(translate_openrouter, model="google/gemma-4-31b-it"), "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
     {"name": "Llama 4 Maverick", "fn": functools.partial(translate_openrouter, model="meta-llama/llama-4-maverick"), "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},

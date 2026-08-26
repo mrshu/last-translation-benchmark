@@ -32,6 +32,7 @@ for submission in submissions:
         "target_lang": submission["target_lang"],
         # TODO: iso codes
         "source_instructions": submission["source_instructions"],
+        "source_media": submission["source_media"],
         "translations": [
             {
                 "model": mt_obj["model"],
