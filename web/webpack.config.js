@@ -6,12 +6,12 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = (env, argv) => ({
   entry: {
-    index: './src/index.ts',
-    contributors: './src/contributors.ts',
-    contributor: './src/contribute.ts',
-    reviewer: './src/review.ts',
-    profile: './src/profile.ts',
-    admin: './src/admin.ts',
+    'index': './src/index.ts',
+    'contributors': './src/contributors.ts',
+    'contributor': './src/contribute.ts',
+    'reviewer': './src/review.ts',
+    'profile': './src/profile.ts',
+    'admin': './src/admin.ts',
     'leaderboard-submission': './src/leaderboard-submission.ts',
   },
   output: {
@@ -86,7 +86,8 @@ module.exports = (env, argv) => ({
     new CopyWebpackPlugin({
       patterns: [
         { from: 'src/assets/', to: 'assets' },
-        { from: 'src/robots.txt', to: 'robots.txt' }
+        { from: 'src/robots.txt', to: 'robots.txt' },
+        { from: 'src/leaderboard_submission.schema.json', to: 'leaderboard_submission.schema.json' },
       ],
     }),
   ],

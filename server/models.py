@@ -77,9 +77,17 @@ class APILLMReq(BaseModel):
 
 class LeaderboardSubmitReq(BaseModel):
     submission: list[Any]
+    model_name: str
     model_size: str
     model_release: str
     model_description: str
     institution: str
     submitter_email: str
-    split: str
+    mode: str
+
+class LeaderboardUpdateReq(BaseModel):
+    status: str
+    visibility: str
+
+class LeaderboardInfoUpdateReq(BaseModel):
+    info: dict

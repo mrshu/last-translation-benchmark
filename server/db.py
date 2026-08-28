@@ -173,6 +173,51 @@ async def create_leaderboard_entry(submissions: list, info: dict) -> int:
         return new_id
 
 
+async def get_leaderboard_entries(status: str | None = None, visibility: str | None = None) -> list[dict]:
+    query = "SELECT id, submissions, info, status, visibility FROM leaderboard WHERE 1=1"
+    params = []
+    if status is not None:
+        query += " AND status = ?"
+        params.append(status)
+    if visibility is not None:
+        query += " AND visibility = ?"
+        params.append(visibility)
+        
+    async with _open_db() as db, db.execute(query, params) as cur:
+        rows = []
+        for r in await cur.fetchall():
+            rows.append({
+                "id": r[0],
+                "submissions": json.loads(r[1]),
+                "info": json.loads(r[2]),
+                "status": r[3],
+                "visibility": r[4],
+            })
+        return rows
+
+
+async def update_leaderboard_entry(uid: int, status: str, visibility: str) -> None:
+    async with _open_db() as db:
+        await db.execute(
+            "UPDATE leaderboard SET status = ?, visibility = ? WHERE id = ?",
+            (status, visibility, uid)
+        )
+        await db.commit()
+
+async def delete_leaderboard_entry(uid: int) -> None:
+    async with _open_db() as db:
+        await db.execute("DELETE FROM leaderboard WHERE id = ?", (uid,))
+        await db.commit()
+
+async def update_leaderboard_info(uid: int, info: dict) -> None:
+    async with _open_db() as db:
+        await db.execute(
+            "UPDATE leaderboard SET info = ? WHERE id = ?",
+            (json.dumps(info), uid)
+        )
+        await db.commit()
+
+
 # --- Init ---
 
 
@@ -198,7 +243,7 @@ async def init_db() -> None:
             "CREATE TABLE IF NOT EXISTS sent_emails (to_email TEXT NOT NULL, subject TEXT NOT NULL, body TEXT NOT NULL, date TEXT NOT NULL)"
         )
         await db.execute(
-            "CREATE TABLE IF NOT EXISTS leaderboard (id INTEGER PRIMARY KEY AUTOINCREMENT, submissions TEXT NOT NULL, info TEXT NOT NULL)"
+            "CREATE TABLE IF NOT EXISTS leaderboard (id INTEGER PRIMARY KEY AUTOINCREMENT, submissions TEXT NOT NULL, info TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', visibility TEXT NOT NULL DEFAULT 'hidden')"
         )
         await db.commit()
 

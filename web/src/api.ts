@@ -209,6 +209,40 @@ export function getContributors() {
     return apiCall<ContributorsData>('GET', 'api/contributors');
 }
 
+export interface LeaderboardEntry {
+    id: number;
+    submissions: any[];
+    info: {
+        model_name: string;
+        model_size: string;
+        model_release: string;
+        model_description: string;
+        institution: string;
+        submitter_email: string;
+        mode: string;
+    };
+    status: string;
+    visibility: string;
+}
+
+export function getLeaderboard(status?: string) {
+    let url = 'api/leaderboard';
+    if (status) url += `?status=${encodeURIComponent(status)}`;
+    return apiCall<LeaderboardEntry[]>('GET', url);
+}
+
+export function updateLeaderboard(id: number, status: string, visibility: string) {
+    return apiCall<void>('POST', `api/admin/leaderboard/${id}`, { status, visibility });
+}
+
+export function updateLeaderboardInfo(id: number, info: any) {
+    return apiCall<void>('PUT', `api/admin/leaderboard/${id}/info`, { info });
+}
+
+export function deleteLeaderboard(id: number) {
+    return apiCall<void>('DELETE', `api/admin/leaderboard/${id}`);
+}
+
 export function createSubmission(data: {
     source_text: string;
     source_media?: string;

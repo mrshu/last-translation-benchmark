@@ -33,12 +33,13 @@ $(async () => {
 
                 const payload = {
                     submission: jsonData,
+                    model_name: $('#model-name').val(),
                     model_size: $('#model-size').val(),
                     model_release: `${releaseYear}-${releaseMonth}`,
                     model_description: $('#model-description').val(),
                     institution: $('#institution').val(),
                     submitter_email: $('#submitter-email').val(),
-                    split: $('#competition-split').val(),
+                    mode: $('#competition-mode').val()
                 };
 
                 const statusEl = $('#submit-status');

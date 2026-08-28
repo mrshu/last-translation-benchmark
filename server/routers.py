@@ -19,15 +19,19 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response
 from .auth import get_current_user, require_role
 from .db import (
     create_leaderboard_entry,
+    delete_leaderboard_entry,
     delete_submission,
     delete_user,
     get_latest_sent_email_date,
+    get_leaderboard_entries,
     get_submission_by_id,
     get_user_by_id,
     get_user_by_username,
     get_users,
     save_submission,
     save_user,
+    update_leaderboard_entry,
+    update_leaderboard_info,
 )
 from .db import (
     create_submission as db_create_submission,
@@ -41,7 +45,9 @@ from .db import (
 from .models import (
     APILLMReq,
     CommentReq,
+    LeaderboardInfoUpdateReq,
     LeaderboardSubmitReq,
+    LeaderboardUpdateReq,
     NotificationActionReq,
     ProfileReq,
     QuotaReq,
@@ -1266,14 +1272,50 @@ async def leaderboard_submit(req: LeaderboardSubmitReq):
     # TODO: verification
     
     info = {
+        "model_name": req.model_name,
         "model_size": req.model_size,
         "model_release": req.model_release,
         "model_description": req.model_description,
         "institution": req.institution,
         "submitter_email": req.submitter_email,
-        "split": req.split
+        "mode": req.mode
     }
     
     await create_leaderboard_entry(req.submission, info)
     
+    return {"ok": True}
+
+
+@router.get("/api/leaderboard")
+async def get_leaderboard(user: CurrentUser, status: str | None = Query(None)):
+    is_admin = "admin" in user["roles"]
+    if is_admin:
+        entries = await get_leaderboard_entries(status=status)
+    else:
+        entries = await get_leaderboard_entries(visibility="visible", status=status)
+    return entries
+
+
+@router.post("/api/admin/leaderboard/{uid}")
+async def admin_update_leaderboard(uid: int, req: LeaderboardUpdateReq, user: CurrentUser):
+    require_role(user, "admin")
+    if req.status not in ("pending", "scoring", "scored"):
+        raise HTTPException(status_code=400, detail="Invalid status")
+    if req.visibility not in ("hidden", "visible"):
+        raise HTTPException(status_code=400, detail="Invalid visibility")
+    
+    await update_leaderboard_entry(uid, req.status, req.visibility)
+    return {"ok": True}
+
+
+@router.delete("/api/admin/leaderboard/{uid}")
+async def admin_delete_leaderboard(uid: int, user: CurrentUser):
+    require_role(user, "admin")
+    await delete_leaderboard_entry(uid)
+    return {"ok": True}
+
+@router.put("/api/admin/leaderboard/{uid}/info")
+async def admin_update_leaderboard_info(uid: int, req: LeaderboardInfoUpdateReq, user: CurrentUser):
+    require_role(user, "admin")
+    await update_leaderboard_info(uid, req.info)
     return {"ok": True}

@@ -2,12 +2,14 @@ import './assets/style.css';
 import $ from 'jquery';
 import {
     getMe, getCookie, getAdminOverview, deleteAdminUser,
-    adjustAdminQuota, updateAdminRoles, updateAdminReviewScope, sendAdminReviewReminder, prepareAdminReviewReminder, renderRoleSwitcher, AdminUser, AdminOverview
+    adjustAdminQuota, updateAdminRoles, updateAdminReviewScope, sendAdminReviewReminder, prepareAdminReviewReminder, renderRoleSwitcher, AdminUser, AdminOverview,
+    getLeaderboard, updateLeaderboard, deleteLeaderboard, updateLeaderboardInfo, LeaderboardEntry
 } from './api';
 
 import { esc, showToast, accessDenied, renderHeaderStatus, formatLargeNumber } from './utils';
 
 let allUsers: AdminUser[] = [];
+let allLeaderboard: LeaderboardEntry[] = [];
 let adminOverview: AdminOverview | null = null;
 
 function renderOverview(data: AdminOverview) {
@@ -273,6 +275,9 @@ $(async () => {
         allUsers = adminOverview.users;
         renderOverview(adminOverview);
         applyFilter();
+        
+        allLeaderboard = await getLeaderboard();
+        renderLeaderboardTable(allLeaderboard);
     } catch { window.location.href = 'index.html'; }
 
     $('#filter-input').on('input', applyFilter);
@@ -280,3 +285,135 @@ $(async () => {
     $('#submitted-filter').on('input', applyFilter);
     $('#accepted-filter').on('input', applyFilter);
 });
+
+function renderLeaderboardTable(entries: LeaderboardEntry[]): void {
+    if (!entries.length) {
+        $('#leaderboard-table').html('<div class="empty">No leaderboard submissions found</div>');
+        return;
+    }
+    const rows = entries.map(e => {
+        const info = e.info || {} as any;
+        
+        let actions = '';
+        if (e.status === 'pending') {
+            actions = `<button class="btn-underlined lb-score" data-uid="${e.id}">Score</button>`;
+        } else if (e.status === 'scoring') {
+            actions = `<span class="muted">Scoring...</span>`;
+        } else if (e.status === 'scored') {
+            if (e.visibility === 'hidden') {
+                actions = `<button class="btn-underlined lb-show" data-uid="${e.id}">Show on leaderboard</button>`;
+            } else {
+                actions = `<button class="btn-underlined lb-hide" data-uid="${e.id}">Hide on leaderboard</button>`;
+            }
+        }
+
+        const editBtn = `<button class="btn-underlined lb-edit" data-uid="${e.id}" style="margin-left: 12px;">Edit</button>`;
+        const delBtn = `<button class="btn-underlined lb-delete" data-uid="${e.id}" style="margin-left: 12px;">Delete</button>`;
+
+        return `<tr>
+            <td>#${e.id}</td>
+            <td title="${esc(info.institution)}">${esc(info.institution || '—')}</td>
+            <td title="${esc(info.submitter_email)}">${esc(info.submitter_email || '—')}</td>
+            <td title="${esc(info.model_name)}">${esc(info.model_name || '—')}</td>
+            <td>${esc(info.model_size || '—')}</td>
+            <td>${esc(info.mode || '—')}</td>
+            <td>${e.submissions?.length || 0} items</td>
+            <td>${esc(e.status)}</td>
+            <td>${actions}${editBtn}${delBtn}</td>
+        </tr>`;
+    }).join('');
+
+    $('#leaderboard-table').html(`<table>
+        <thead><tr><th>ID</th><th>Institution</th><th>Email</th><th>Model Name</th><th>Size</th><th>Mode</th><th>Items</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>${rows}</tbody>
+    </table>`);
+
+    $('.lb-edit').on('click', function() {
+        const uid = $(this).data('uid');
+        const entry = allLeaderboard.find(x => x.id === uid);
+        if (!entry) return;
+
+        const infoStr = JSON.stringify(entry.info, null, 2);
+
+        const modalHtml = `
+            <div id="info-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:9999;">
+                <div style="background:white; padding:20px; border-radius:2px; width:80%; max-width:600px; display:flex; flex-direction:column; gap:10px;">
+                    <h3 style="margin-top:0">Edit leaderboard submission info</h3>
+                    <textarea id="info-body" style="width:100%; height:300px; padding:10px; font-family:monospace; background-color: #eee;">${esc(infoStr)}</textarea>
+                    <div style="display:flex; gap:10px; justify-content:flex-end;">
+                        <button id="info-cancel" class="btn btn-secondary">Cancel</button>
+                        <button id="info-save" class="btn btn-success">Save Info</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        $('body').append(modalHtml);
+
+        $('#info-cancel').on('click', () => $('#info-modal').remove());
+        $('#info-save').on('click', async () => {
+            const rawBody = $('#info-body').val() as string;
+            let parsedInfo;
+            try {
+                parsedInfo = JSON.parse(rawBody);
+            } catch (e) {
+                alert("Invalid JSON: " + e);
+                return;
+            }
+            
+            $('#info-modal').remove();
+            try {
+                await updateLeaderboardInfo(uid, parsedInfo);
+                entry.info = parsedInfo;
+                showToast('Info updated');
+                renderLeaderboardTable(allLeaderboard);
+            } catch (e) { alert(e); }
+        });
+    });
+
+    $('.lb-score').on('click', async function () {
+        const uid = $(this).data('uid');
+        const entry = allLeaderboard.find(x => x.id === uid);
+        if (!entry) return;
+        try {
+            await updateLeaderboard(uid, 'scored', entry.visibility);
+            entry.status = 'scored';
+            showToast('Leaderboard entry scored');
+            renderLeaderboardTable(allLeaderboard);
+        } catch (e) { alert(e); }
+    });
+
+    $('.lb-show').on('click', async function () {
+        const uid = $(this).data('uid');
+        const entry = allLeaderboard.find(x => x.id === uid);
+        if (!entry) return;
+        try {
+            await updateLeaderboard(uid, entry.status, 'visible');
+            entry.visibility = 'visible';
+            showToast('Leaderboard entry is now visible');
+            renderLeaderboardTable(allLeaderboard);
+        } catch (e) { alert(e); }
+    });
+
+    $('.lb-hide').on('click', async function () {
+        const uid = $(this).data('uid');
+        const entry = allLeaderboard.find(x => x.id === uid);
+        if (!entry) return;
+        try {
+            await updateLeaderboard(uid, entry.status, 'hidden');
+            entry.visibility = 'hidden';
+            showToast('Leaderboard entry is now hidden');
+            renderLeaderboardTable(allLeaderboard);
+        } catch (e) { alert(e); }
+    });
+
+    $('.lb-delete').on('click', async function () {
+        const uid = $(this).data('uid');
+        if (!confirm('Are you sure you want to delete this leaderboard entry?')) return;
+        try {
+            await deleteLeaderboard(uid);
+            allLeaderboard = allLeaderboard.filter(x => x.id !== uid);
+            showToast('Leaderboard entry deleted');
+            renderLeaderboardTable(allLeaderboard);
+        } catch (e) { alert(e); }
+    });
+}

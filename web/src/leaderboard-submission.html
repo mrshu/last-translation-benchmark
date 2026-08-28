@@ -39,6 +39,12 @@
         </div>
 
         <div style="margin-bottom: 15px;">
+          <label for="model-name">Model name</label>
+          <p style="font-size: 0.85em; color: #64748b; margin: 3px 0 5px 0;">The official name of the model being submitted.</p>
+          <input type="text" id="model-name" placeholder="Model name..." required style="display: block; margin-top: 5px; width: 100%; padding: 8px; box-sizing: border-box;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
           <label for="model-size">Model size</label>
           <p style="font-size: 0.85em; color: #64748b; margin: 3px 0 5px 0;">Select the approximate number of parameters in your model.</p>
           <select id="model-size" required style="display: block; margin-top: 5px; width: 100%; padding: 8px;">
@@ -81,12 +87,12 @@
         </div>
 
         <div style="margin-bottom: 20px;">
-          <label for="competition-split">Submission mode</label>
+          <label for="competition-mode">Submission mode</label>
           <p style="font-size: 0.85em; color: #64748b; margin: 3px 0 5px 0;">
             Indicate if this submission follows the main LTBv1 rules (i.e. not using verification rules or human translation and not training on LTB). It's ok to experiment with using this privileged information but it should be disclosed.
           </p>
-          <select id="competition-split" required style="display: block; margin-top: 5px; width: 100%; padding: 8px;">
-            <option value="" disabled selected>Select split</option>
+          <select id="competition-mode" required style="display: block; margin-top: 5px; width: 100%; padding: 8px;">
+            <option value="" disabled selected>Select mode</option>
             <option value="main">Main LTBv1 competition (only source text/media, instructions, and languages used for inference)</option>
             <option value="other">Other (e.g., privileged info, human translation, training on data)</option>
           </select>
