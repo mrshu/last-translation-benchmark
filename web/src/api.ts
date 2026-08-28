@@ -56,15 +56,14 @@ export interface Submission {
     created_at: string;
     comments?: Comment[];
 }
-
-export interface PublicDashboardRow {
+export interface ContributorsRow {
     name: string;
     affiliation: string;
     accepted_submissions: number;
 }
 
-export interface PublicDashboardData {
-    rows: PublicDashboardRow[];
+export interface ContributorsData {
+    rows: ContributorsRow[];
     total_submissions: number;
     total_authors: number;
     total_authors_accepted: number;
@@ -206,8 +205,8 @@ export function getSubmissions(
     return apiCall<Submission[]>('GET', `api/submissions?${query.toString()}`, undefined, signal);
 }
 
-export function getPublicDashboard() {
-    return apiCall<PublicDashboardData>('GET', 'api/public-dashboard');
+export function getContributors() {
+    return apiCall<ContributorsData>('GET', 'api/contributors');
 }
 
 export function createSubmission(data: {
@@ -380,12 +379,12 @@ export function renderRoleSwitcher(roles: string[]): void {
     profileBtn.href = 'profile';
     container.appendChild(profileBtn);
 
-    const dashboardBtn = document.createElement('a');
-    dashboardBtn.textContent = 'Contributors';
-    dashboardBtn.className = 'btn-underlined';
-    dashboardBtn.style.fontSize = '0.85em';
-    dashboardBtn.href = 'dashboard';
-    container.appendChild(dashboardBtn);
+    const contributorsBtn = document.createElement('a');
+    contributorsBtn.textContent = 'Contributors';
+    contributorsBtn.className = 'btn-underlined';
+    contributorsBtn.style.fontSize = '0.85em';
+    contributorsBtn.href = 'contributors';
+    container.appendChild(contributorsBtn);
 
     const logoutBtn = document.createElement('button');
     logoutBtn.textContent = 'Logout';

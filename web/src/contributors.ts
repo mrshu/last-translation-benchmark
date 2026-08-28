@@ -1,7 +1,7 @@
 import './assets/style.css';
 import $ from 'jquery';
 
-import { getPublicDashboard, getCookie, getMe, renderRoleSwitcher } from './api';
+import { getContributors, getCookie, getMe, renderRoleSwitcher } from './api';
 import { esc as escHtml, renderHeaderStatus } from './utils';
 
 $(async () => {
@@ -11,17 +11,17 @@ $(async () => {
             renderHeaderStatus(user);
             renderRoleSwitcher(user.roles);
         } catch {
-            // Ignore and just show dashboard for unauthenticated / bad token
+            // Ignore and just show contributors for unauthenticated / bad token
         }
     }
 
     try {
-        const data = await getPublicDashboard();
+        const data = await getContributors();
 
         const languages = data.languages.filter(x => x[1] > 1).map(x => escHtml(x[0].replace("(", "").replace(")", "")).replace(" ", "&nbsp;") + ` (${x[1]})`).join(', ');
         const languages_singular = data.languages.filter(x => x[1] === 1).length;
         
-        $('#dashboard-stats').html(`
+        $('#contributors-stats').html(`
             <div style="flex-wrap: wrap; display: flex; gap: 20px; text-align: justify;">
                 <div><strong>Total Submissions:</strong> ${data.total_submissions}</div>
                 <div><strong>Contributors:</strong> ${data.total_authors}</div>
@@ -31,10 +31,10 @@ $(async () => {
         `);
 
         if (!data.rows.length) {
-            $('#dashboard-body').html('<tr><td colspan="3" class="empty">No accepted submissions yet.</td></tr>');
+            $('#contributors-body').html('<tr><td colspan="3" class="empty">No accepted submissions yet.</td></tr>');
             return;
         }
-        $('#dashboard-body').html(data.rows.map((row) => `
+        $('#contributors-body').html(data.rows.map((row) => `
             <tr>
               <td style="padding: 3px; border-bottom:1px solid #f1f5f9;">${escHtml(row.name)}</td>
               <td style="padding: 3px; border-bottom:1px solid #f1f5f9;">${escHtml(row.affiliation)}</td>
@@ -42,6 +42,6 @@ $(async () => {
             </tr>
         `).join(''));
     } catch {
-        $('#dashboard-body').html('<tr><td colspan="3" class="empty">Failed to load dashboard data.</td></tr>');
+        $('#contributors-body').html('<tr><td colspan="3" class="empty">Failed to load contributors data.</td></tr>');
     }
 });

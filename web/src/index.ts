@@ -47,8 +47,8 @@ function showRoleButtons(user: User): void {
         actions1.append('<a href="review" class="btn btn-success">🔍&nbsp;Review examples</a>');
     }
 
-    actions1.append('<a href="dashboard" class="btn btn-success">Contributors</a>');
-    actions1.append('<a href="leaderboard-submission" class="btn btn-success">New model submission</a>');
+    actions1.append('<a href="contributors" class="btn btn-success">Contributors</a>');
+    // actions1.append('<a href="leaderboard-submission" class="btn btn-success">New model submission</a>');
 
     if (user.roles.includes('admin')) {
         actions2.append('<a href="admin" class="btn btn-success">Admin</a>');

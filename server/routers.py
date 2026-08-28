@@ -401,8 +401,8 @@ async def admin_overview(user: CurrentUser):
     }
 
 
-@router.get("/api/public-dashboard")
-async def public_dashboard():
+@router.get("/api/contributors")
+async def get_contributors():
     users = await get_users()
     submissions = await db_get_submissions()
 

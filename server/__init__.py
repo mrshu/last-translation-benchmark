@@ -120,9 +120,9 @@ async def serve_profile():
     return FileResponse(_STATIC_DIR + "/profile.html")
 
 
-@app.get("/dashboard")
-async def serve_dashboard():
-    return FileResponse(_STATIC_DIR + "/dashboard.html")
+@app.get("/contributors")
+async def serve_contributors():
+    return FileResponse(_STATIC_DIR + "/contributors.html")
 
 
 @app.get("/leaderboard-submission")
