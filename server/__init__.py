@@ -129,6 +129,10 @@ async def serve_contributors():
 async def serve_leaderboard_submission():
     return FileResponse(_STATIC_DIR + "/leaderboard-submission.html")
 
+@app.get("/leaderboard-results")
+async def serve_leaderboard_results():
+    return FileResponse(_STATIC_DIR + "/leaderboard-results.html")
+
 
 # redirect favicon.ico to assets/favicon.svg to avoid 404 errors in logs
 @app.get("/favicon.ico")

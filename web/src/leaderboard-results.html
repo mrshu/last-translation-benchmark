@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=800">
+  <title>Leaderboard | Last Translation Benchmark</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <style>
+    .filter-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 20px;
+      padding: 15px;
+      border-bottom: 4px solid black;
+    }
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .filter-group label {
+      font-weight: bold;
+      font-size: 0.9em;
+      color: #475569;
+    }
+    .filter-group select {
+      padding: 6px;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+    }
+    #leaderboard-table th {
+      cursor: pointer;
+    }
+    #leaderboard-table th:hover {
+      background-color: #ddd;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9em;
+    }
+    th {
+      text-align: left;
+      padding: 12px;
+      color: #475569;
+      font-weight: 700;
+    }
+    td {
+      padding: 12px;
+      vertical-align: middle;
+      color: #334155;
+    }
+    tr:hover td {
+      background: #f8fafc;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/" style="text-decoration:none;color:inherit;">
+      <h1><img src="assets/favicon.svg" style="height: 1em;"> Last Translation Benchmark</h1>
+    </a>
+    <div id="header-status" style="display: none; align-items: center; gap: 16px;">
+      <span class="info" title="How many times you can run the translation.">
+        <span id="quota-text"></span>
+      </span>
+      <span class="info" title="Total confirmed contributions.">
+        <span id="total-points">0</span> accepted
+      </span>
+      <span id="username-info" class="info"></span>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h2>Leaderboard</h2>
+      
+      <div class="filter-container">
+        <div class="filter-group">
+          <label for="filter-mode">Mode</label>
+          <select id="filter-mode">
+            <option value="Real">Real</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label for="filter-tag">Subset</label>
+          <select id="filter-tag">
+            <option value="LTBv1">LTBv1</option>
+            <option value="LTBv1-micro">LTBv1-micro</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label for="filter-media">Media Type</label>
+          <select id="filter-media">
+            <option value="text">Text Only</option>
+            <option value="all">All</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label for="filter-lang">Language</label>
+          <select id="filter-lang">
+            <option value="all">All Languages</option>
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+      </div>
+
+      <div id="leaderboard-content">
+        Loading leaderboard data...
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -13,6 +13,7 @@ module.exports = (env, argv) => ({
     'profile': './src/profile.ts',
     'admin': './src/admin.ts',
     'leaderboard-submission': './src/leaderboard-submission.ts',
+    'leaderboard-results': './src/leaderboard-results.ts',
   },
   output: {
     filename: '[name].bundle.js',
@@ -80,6 +81,12 @@ module.exports = (env, argv) => ({
       template: './src/leaderboard-submission.html',
       filename: 'leaderboard-submission.html',
       chunks: ['leaderboard-submission'],
+      hash: true,
+    }),
+    new HtmlWebpackPlugin({
+      template: './src/leaderboard-results.html',
+      filename: 'leaderboard-results.html',
+      chunks: ['leaderboard-results'],
       hash: true,
     }),
 

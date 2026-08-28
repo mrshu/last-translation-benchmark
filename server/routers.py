@@ -27,6 +27,7 @@ from .db import (
     get_leaderboard_entries,
     get_leaderboard_entry,
     get_submission_by_id,
+    get_submissions,
     get_user_by_id,
     get_user_by_username,
     get_users,
@@ -1297,6 +1298,56 @@ async def get_leaderboard(user: CurrentUser, status: str | None = Query(None)):
         entries = await get_leaderboard_entries(visibility="visible", status=status)
     return entries
 
+
+@router.get("/api/leaderboard/results")
+async def get_leaderboard_results():
+    all_subs = await get_submissions(None)
+    accepted_subs = [s for s in all_subs if s.get("status") == "accept"]
+    
+    submissions = []
+    for s in accepted_subs:
+        non_text = None
+        source_media = s.get("source_media")
+        if source_media:
+            mime = source_media.split(",")[0].lower()
+            if "audio" in mime:
+                non_text = "audio"
+            elif "video" in mime:
+                non_text = "video"
+            elif "image" in mime:
+                non_text = "image"
+            else:
+                non_text = "other"
+        
+        submissions.append({
+            "id": s["id"],
+            "source_lang": s.get("source_lang"),
+            "target_lang": s.get("target_lang"),
+            "non_text": non_text,
+            "tags": ["LTBv1"]
+        })
+        
+    entries = await get_leaderboard_entries(status="scored", visibility="visible")
+    models = []
+    for e in entries:
+        results = {}
+        for sub in e["submissions"]:
+            sid = sub["id"]
+            veri = sub.get("verification")
+            if veri is None:
+                continue
+            results[sid] = 1 if all(veri) else 0
+        
+        models.append({
+            "id": e["id"],
+            "info": e["info"],
+            "results": results
+        })
+        
+    return {
+        "submissions": submissions,
+        "models": models
+    }
 
 @router.post("/api/admin/leaderboard/{uid}")
 async def admin_update_leaderboard(uid: int, req: LeaderboardUpdateReq, user: CurrentUser):

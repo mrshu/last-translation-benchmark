@@ -225,13 +225,20 @@ export interface LeaderboardEntry {
     visibility: string;
 }
 
-export function getLeaderboard(status?: string) {
+export function getLeaderboard(status?: string, visibility?: string): Promise<LeaderboardEntry[]> {
     let url = 'api/leaderboard';
-    if (status) url += `?status=${encodeURIComponent(status)}`;
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (visibility) params.append('visibility', visibility);
+    if (params.toString()) url += '?' + params.toString();
     return apiCall<LeaderboardEntry[]>('GET', url);
 }
 
-export function updateLeaderboard(id: number, status: string, visibility: string) {
+export function fetchLeaderboardResults(): Promise<any> {
+    return apiCall<any>('GET', 'api/leaderboard/results');
+}
+
+export function updateLeaderboard(id: number, status: string, visibility: string): Promise<void> {
     return apiCall<void>('POST', `api/admin/leaderboard/${id}`, { status, visibility });
 }
 
