@@ -12,6 +12,7 @@ module.exports = (env, argv) => ({
     reviewer: './src/review.ts',
     profile: './src/profile.ts',
     admin: './src/admin.ts',
+    'leaderboard-submission': './src/leaderboard-submission.ts',
   },
   output: {
     filename: '[name].bundle.js',
@@ -73,6 +74,12 @@ module.exports = (env, argv) => ({
       template: './src/admin.html',
       filename: 'admin.html',
       chunks: ['admin'],
+      hash: true,
+    }),
+    new HtmlWebpackPlugin({
+      template: './src/leaderboard-submission.html',
+      filename: 'leaderboard-submission.html',
+      chunks: ['leaderboard-submission'],
       hash: true,
     }),
 

@@ -381,7 +381,7 @@ export function renderRoleSwitcher(roles: string[]): void {
     container.appendChild(profileBtn);
 
     const dashboardBtn = document.createElement('a');
-    dashboardBtn.textContent = 'Dashboard';
+    dashboardBtn.textContent = 'Contributors';
     dashboardBtn.className = 'btn-underlined';
     dashboardBtn.style.fontSize = '0.85em';
     dashboardBtn.href = 'dashboard';

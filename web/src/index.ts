@@ -35,28 +35,33 @@ function showRoleButtons(user: User): void {
     $('#cta-info-unauth').hide();
 
     const container = $('#role-buttons');
-    const actions = $('<div class="role-actions"></div>');
+    const actions1 = $('<div class="role-actions"></div>');
+    const actions2 = $('<div class="role-actions" style="margin-top: 10px;"></div>');
 
     container.append(`<span>Hello ${escHtml(user.name)} from ${escHtml(user.affiliation)}!</span><br><br>`);
 
     if (user.roles.includes('contributor')) {
-        actions.append('<a href="contribute" class="btn btn-success">✍️&nbsp;Contribute</a>');
+        actions1.append('<a href="contribute" class="btn btn-success">✍️&nbsp;Contribute examples</a>');
     }
     if (user.roles.includes('reviewer')) {
-        actions.append('<a href="review" class="btn btn-success">🔍&nbsp;Review</a>');
-    }
-    if (user.roles.includes('admin')) {
-        actions.append('<a href="admin" class="btn btn-success">⚙️&nbsp;Admin</a>');
+        actions1.append('<a href="review" class="btn btn-success">🔍&nbsp;Review examples</a>');
     }
 
-    actions.append('<a href="dashboard" class="btn btn-success">📊&nbsp;Public Dashboard</a>');
-    actions.append('<a href="profile" class="btn btn-success">📇&nbsp;Profile</a>');
+    actions1.append('<a href="dashboard" class="btn btn-success">Contributors</a>');
+    actions1.append('<a href="leaderboard-submission" class="btn btn-success">New model submission</a>');
+
+    if (user.roles.includes('admin')) {
+        actions2.append('<a href="admin" class="btn btn-success">Admin</a>');
+    }
+
+    actions2.append('<a href="profile" class="btn btn-success">Profile</a>');
 
     const logoutBtn = $('<button class="btn btn-success">Logout</button>');
     logoutBtn.on('click', logout);
-    actions.append(logoutBtn);
+    actions2.append(logoutBtn);
 
-    container.append(actions);
+    container.append(actions1);
+    container.append(actions2);
 
     container.css('display', 'block');
 

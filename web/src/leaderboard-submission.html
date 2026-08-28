@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=800">
+  <title>New model submission - Last Translation Benchmark</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+</head>
+
+<body>
+  <header>
+    <a href="/" style="text-decoration:none;color:inherit;">
+      <h1><img src="assets/favicon.svg" style="height: 1em;"> Last Translation Benchmark</h1>
+    </a>
+    <div id="header-status" style="display: none; align-items: center; gap: 16px;">
+      <span class="info" title="How many times you can run the translation.">
+        <span id="quota-text"></span>
+      </span>
+      <span class="info" title="Total confirmed contributions.">
+        <span id="total-points">0</span> accepted
+      </span>
+      <span id="username-info" class="info"></span>
+    </div>
+  </header>
+
+  <div class="container" style="max-width: 800px; margin: 0 auto;">
+    <div class="card">
+      <h2>New model submission</h2>
+      <p style="color: #475569; font-size: 0.9em; margin-bottom: 20px;">
+        Submit your model's predictions to the leaderboard.
+      </p>
+
+      <form id="submission-form">
+        <div style="margin-bottom: 15px;">
+          <label for="submission-file">Upload JSON file with the submission</label>
+          <p style="font-size: 0.85em; color: #64748b; margin: 3px 0 5px 0;">Upload the JSON file containing your model's predictions.</p>
+          <input type="file" id="submission-file" accept=".json" required style="display: block; margin-top: 5px;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <label for="model-size">Model size</label>
+          <p style="font-size: 0.85em; color: #64748b; margin: 3px 0 5px 0;">Select the approximate number of parameters in your model.</p>
+          <select id="model-size" required style="display: block; margin-top: 5px; width: 100%; padding: 8px;">
+            <option value="" disabled selected>Select typical model size</option>
+            <option value="<1B">&lt; 1B</option>
+            <option value="1B-3B">1B - 3B</option>
+            <option value="3B-10B">3B - 10B</option>
+            <option value="10B-30B">10B - 30B</option>
+            <option value="30B-100B">30B - 100B</option>
+            <option value=">100B">&gt; 100B</option>
+            <option value="unknown">Unknown / API</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <label>Model release year and month</label>
+          <p style="font-size: 0.85em; color: #64748b; margin: 3px 0 5px 0;">When was this model publicly released or API made available?</p>
+          <div style="display: flex; gap: 10px; margin-top: 5px;">
+            <input type="number" id="model-release-year" placeholder="Year (e.g. 2024)" min="2010" max="2035" required style="flex: 1; padding: 8px; box-sizing: border-box;">
+            <input type="number" id="model-release-month" placeholder="Month (1-12)" min="1" max="12" required style="flex: 1; padding: 8px; box-sizing: border-box;">
+          </div>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <label for="model-description">Model description</label>
+          <p style="font-size: 0.85em; color: #64748b; margin: 3px 0 5px 0;">Briefly describe the architecture, training data, or uniqueness of your model.</p>
+          <textarea id="model-description" placeholder="Short description of the model..." required style="display: block; margin-top: 5px; width: 100%; min-height: 80px; box-sizing: border-box;"></textarea>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <label for="institution">Institution</label>
+          <p style="font-size: 0.85em; color: #64748b; margin: 3px 0 5px 0;">The organization responsible for this model.</p>
+          <input type="text" id="institution" placeholder="Institution name..." required style="display: block; margin-top: 5px; width: 100%; padding: 8px; box-sizing: border-box;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <label for="submitter-email">Submitter email</label>
+          <p style="font-size: 0.85em; color: #64748b; margin: 3px 0 5px 0;">We may contact you if there are issues with your submission.</p>
+          <input type="email" id="submitter-email" placeholder="Email address..." required style="display: block; margin-top: 5px; width: 100%; padding: 8px; box-sizing: border-box;">
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <label for="competition-split">Split</label>
+          <p style="font-size: 0.85em; color: #64748b; margin: 3px 0 5px 0;">Indicate if this submission follows the main LTBv1 rules or falls into another category.</p>
+          <select id="competition-split" required style="display: block; margin-top: 5px; width: 100%; padding: 8px;">
+            <option value="" disabled selected>Select split</option>
+            <option value="main">Main LTBv1 competition</option>
+            <option value="other">Other (e.g., privileged info, human translation, training on data)</option>
+          </select>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; align-items: center;">
+          <span id="submit-status" style="margin-right:10px;font-size:0.85em"></span>
+          <button type="submit" class="btn btn-success" id="submit-btn">Submit</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+
+</html>
