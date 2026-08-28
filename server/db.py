@@ -173,6 +173,19 @@ async def create_leaderboard_entry(submissions: list, info: dict) -> int:
         return new_id
 
 
+async def get_leaderboard_entry(uid: int) -> dict | None:
+    async with _open_db() as db, db.execute("SELECT id, submissions, info, status, visibility FROM leaderboard WHERE id = ?", (uid,)) as cur:
+        r = await cur.fetchone()
+        if not r:
+            return None
+        return {
+            "id": r[0],
+            "submissions": json.loads(r[1]),
+            "info": json.loads(r[2]),
+            "status": r[3],
+            "visibility": r[4],
+        }
+
 async def get_leaderboard_entries(status: str | None = None, visibility: str | None = None) -> list[dict]:
     query = "SELECT id, submissions, info, status, visibility FROM leaderboard WHERE 1=1"
     params = []

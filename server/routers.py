@@ -7,6 +7,7 @@ import os
 import random
 import secrets
 import statistics
+import sys
 import time
 from datetime import UTC, datetime
 from typing import Annotated, Literal
@@ -24,6 +25,7 @@ from .db import (
     delete_user,
     get_latest_sent_email_date,
     get_leaderboard_entries,
+    get_leaderboard_entry,
     get_submission_by_id,
     get_user_by_id,
     get_user_by_username,
@@ -1303,19 +1305,24 @@ async def admin_update_leaderboard(uid: int, req: LeaderboardUpdateReq, user: Cu
         raise HTTPException(status_code=400, detail="Invalid status")
     if req.visibility not in ("hidden", "visible"):
         raise HTTPException(status_code=400, detail="Invalid visibility")
-    
-    if req.status == "scoring":
-        import asyncio
-        import os
-        import sys
-        
+    current_entry = await get_leaderboard_entry(uid)
+    if not current_entry:
+        raise HTTPException(status_code=404, detail="Leaderboard entry not found")
+
+    if req.status == "scoring" and current_entry["status"] == "pending":
         async def run_script():
-            proc = await asyncio.create_subprocess_exec(
-                sys.executable, 
-                os.path.dirname(__file__) + "/../scripts/41-score_leaderboard.py", 
-                str(uid)
-            )
-            await proc.wait()
+            os.makedirs("logs", exist_ok=True)
+            with open(f"logs/scoring_{uid}.log", "w") as log_file:
+                proc = await asyncio.create_subprocess_exec(
+                    sys.executable, 
+                    os.path.dirname(__file__) + "/../scripts/41-score_leaderboard.py", 
+                    str(uid),
+                    stdout=log_file,
+                    stderr=log_file
+                )
+                await proc.wait()
+                if proc.returncode != 0:
+                    await update_leaderboard_entry(uid, "pending", req.visibility)
             
         asyncio.create_task(run_script())
 

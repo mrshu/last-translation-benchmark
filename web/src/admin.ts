@@ -297,34 +297,36 @@ function renderLeaderboardTable(entries: LeaderboardEntry[]): void {
         let actions = '';
         if (e.status === 'pending') {
             actions = `<button class="btn-underlined lb-score" data-uid="${e.id}">Score</button>`;
-        } else if (e.status === 'scoring') {
-            actions = `<span class="muted">Scoring...</span>`;
         } else if (e.status === 'scored') {
             if (e.visibility === 'hidden') {
-                actions = `<button class="btn-underlined lb-show" data-uid="${e.id}">Show on leaderboard</button>`;
+                actions = `<button class="btn-underlined lb-show" data-uid="${e.id}">Publish</button>`;
             } else {
-                actions = `<button class="btn-underlined lb-hide" data-uid="${e.id}">Hide on leaderboard</button>`;
+                actions = `<button class="btn-underlined lb-hide" data-uid="${e.id}">Unpublish</button>`;
             }
         }
 
-        const editBtn = `<button class="btn-underlined lb-edit" data-uid="${e.id}" style="margin-left: 12px;">Edit</button>`;
-        const delBtn = `<button class="btn-underlined lb-delete" data-uid="${e.id}" style="margin-left: 12px;">Delete</button>`;
+        let editBtn = `<button class="btn-underlined lb-edit" data-uid="${e.id}">Edit</button>`;
+        let delBtn = `<button class="btn-underlined lb-delete" data-uid="${e.id}">Delete</button>`;
+        
+        if (e.status === 'scoring') {
+            editBtn = '';
+        }
 
         return `<tr>
             <td>#${e.id}</td>
             <td title="${esc(info.institution)}">${esc(info.institution || '—')}</td>
-            <td title="${esc(info.submitter_email)}">${esc(info.submitter_email || '—')}</td>
+            <td class="email-cell" title="${esc(info.submitter_email)}">${info.submitter_email ? `<a href="mailto:${esc(info.submitter_email)}">${esc(info.submitter_email)}</a>` : '—'}</td>
             <td title="${esc(info.model_name)}">${esc(info.model_name || '—')}</td>
             <td>${esc(info.model_size || '—')}</td>
             <td>${esc(info.mode || '—')}</td>
             <td>${e.submissions?.length || 0} items</td>
             <td>${esc(e.status)}</td>
-            <td>${actions}${editBtn}${delBtn}</td>
+            <td style='display: inline-flex; gap: 10px;'>${actions}${editBtn}${delBtn}</td>
         </tr>`;
     }).join('');
 
     $('#leaderboard-table').html(`<table>
-        <thead><tr><th>ID</th><th>Institution</th><th>Email</th><th>Model Name</th><th>Size</th><th>Mode</th><th>Items</th><th>Status</th><th>Actions</th></tr></thead>
+        <thead><tr><th>ID</th><th>Institution</th><th class="email-cell">Email</th><th>Model Name</th><th>Size</th><th>Mode</th><th>Items</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>${rows}</tbody>
     </table>`);
 
