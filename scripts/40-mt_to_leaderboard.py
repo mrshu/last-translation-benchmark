@@ -1,4 +1,5 @@
-import json, os
+import json
+import os
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)) + "/..")
 

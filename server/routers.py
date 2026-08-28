@@ -1304,6 +1304,21 @@ async def admin_update_leaderboard(uid: int, req: LeaderboardUpdateReq, user: Cu
     if req.visibility not in ("hidden", "visible"):
         raise HTTPException(status_code=400, detail="Invalid visibility")
     
+    if req.status == "scoring":
+        import asyncio
+        import os
+        import sys
+        
+        async def run_script():
+            proc = await asyncio.create_subprocess_exec(
+                sys.executable, 
+                os.path.dirname(__file__) + "/../scripts/41-score_leaderboard.py", 
+                str(uid)
+            )
+            await proc.wait()
+            
+        asyncio.create_task(run_script())
+
     await update_leaderboard_entry(uid, req.status, req.visibility)
     return {"ok": True}
 

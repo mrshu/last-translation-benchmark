@@ -375,9 +375,9 @@ function renderLeaderboardTable(entries: LeaderboardEntry[]): void {
         const entry = allLeaderboard.find(x => x.id === uid);
         if (!entry) return;
         try {
-            await updateLeaderboard(uid, 'scored', entry.visibility);
-            entry.status = 'scored';
-            showToast('Leaderboard entry scored');
+            await updateLeaderboard(uid, 'scoring', entry.visibility);
+            entry.status = 'scoring';
+            showToast('Leaderboard entry scoring in background');
             renderLeaderboardTable(allLeaderboard);
         } catch (e) { alert(e); }
     });

@@ -5,7 +5,6 @@ import datetime
 import itertools
 import json
 import math
-from operator import le
 import os
 import random
 import statistics
