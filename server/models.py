@@ -1,3 +1,4 @@
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -72,3 +73,13 @@ class APILLMReq(BaseModel):
     prompt: str = Field(max_length=50000)
     source_media: str | None = field_source_media
     cache: bool = True
+
+
+class LeaderboardSubmitReq(BaseModel):
+    submission: list[Any]
+    model_size: str
+    model_release: str
+    model_description: str
+    institution: str
+    submitter_email: str
+    split: str

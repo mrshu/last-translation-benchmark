@@ -47,7 +47,7 @@ $(async () => {
                 statusEl.text('Submitting...').css('color', 'black');
                 btn.prop('disabled', true);
 
-                const response = await fetch('/api/leaderboard-submit', {
+                const response = await fetch('/api/leaderboard', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)

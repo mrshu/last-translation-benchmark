@@ -28,13 +28,13 @@
     <div class="card">
       <h2>New model submission</h2>
       <p style="color: #475569; font-size: 0.9em; margin-bottom: 20px;">
-        Submit your model's predictions to the leaderboard.
+        Submit your model's predictions to the public leaderboard.
       </p>
 
       <form id="submission-form">
         <div style="margin-bottom: 15px;">
           <label for="submission-file">Upload JSON file with the submission</label>
-          <p style="font-size: 0.85em; color: #64748b; margin: 3px 0 5px 0;">Upload the JSON file containing your model's predictions.</p>
+          <p style="font-size: 0.85em; color: #64748b; margin: 3px 0 5px 0;">Upload the JSON file containing your model's predictions. The file must follow <a href="/leaderboard_submission.schema.json" target="_blank" style="color: #64748b; text-decoration: underline;">this JSON schema</a>. It's a JSON array with mandatory "id" and "translation" keys. The "translation" can be null if the model can't process the particular example.</p>
           <input type="file" id="submission-file" accept=".json" required style="display: block; margin-top: 5px;">
         </div>
 
@@ -64,8 +64,8 @@
 
         <div style="margin-bottom: 15px;">
           <label for="model-description">Model description</label>
-          <p style="font-size: 0.85em; color: #64748b; margin: 3px 0 5px 0;">Briefly describe the architecture, training data, or uniqueness of your model.</p>
-          <textarea id="model-description" placeholder="Short description of the model..." required style="display: block; margin-top: 5px; width: 100%; min-height: 80px; box-sizing: border-box;"></textarea>
+          <p style="font-size: 0.85em; color: #64748b; margin: 3px 0 5px 0;">Briefly describe the model, ideally with a link to its documentation or paper.</p>
+          <textarea id="model-description" placeholder="Short description of the model..." required style="display: block; margin-top: 5px; width: 100%; min-height: 250px; box-sizing: border-box;"></textarea>
         </div>
 
         <div style="margin-bottom: 15px;">
@@ -76,16 +76,18 @@
 
         <div style="margin-bottom: 15px;">
           <label for="submitter-email">Submitter email</label>
-          <p style="font-size: 0.85em; color: #64748b; margin: 3px 0 5px 0;">We may contact you if there are issues with your submission.</p>
+          <p style="font-size: 0.85em; color: #64748b; margin: 3px 0 5px 0;">This is where you'll receive updates about your submission. We may contact you if there are issues with your submission. The email will not be public.</p>
           <input type="email" id="submitter-email" placeholder="Email address..." required style="display: block; margin-top: 5px; width: 100%; padding: 8px; box-sizing: border-box;">
         </div>
 
         <div style="margin-bottom: 20px;">
-          <label for="competition-split">Split</label>
-          <p style="font-size: 0.85em; color: #64748b; margin: 3px 0 5px 0;">Indicate if this submission follows the main LTBv1 rules or falls into another category.</p>
+          <label for="competition-split">Submission mode</label>
+          <p style="font-size: 0.85em; color: #64748b; margin: 3px 0 5px 0;">
+            Indicate if this submission follows the main LTBv1 rules (i.e. not using verification rules or human translation and not training on LTB). It's ok to experiment with using this privileged information but it should be disclosed.
+          </p>
           <select id="competition-split" required style="display: block; margin-top: 5px; width: 100%; padding: 8px;">
             <option value="" disabled selected>Select split</option>
-            <option value="main">Main LTBv1 competition</option>
+            <option value="main">Main LTBv1 competition (only source text/media, instructions, and languages used for inference)</option>
             <option value="other">Other (e.g., privileged info, human translation, training on data)</option>
           </select>
         </div>

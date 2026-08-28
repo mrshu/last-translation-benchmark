@@ -12,17 +12,13 @@ from datetime import UTC, datetime
 from typing import Annotated, Literal
 
 import cohere
+import jsonschema
 import openrouter.errors
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response
 
 from .auth import get_current_user, require_role
 from .db import (
-    create_submission as db_create_submission,
-)
-from .db import (
-    create_user as db_create_user,
-)
-from .db import (
+    create_leaderboard_entry,
     delete_submission,
     delete_user,
     get_latest_sent_email_date,
@@ -34,11 +30,18 @@ from .db import (
     save_user,
 )
 from .db import (
+    create_submission as db_create_submission,
+)
+from .db import (
+    create_user as db_create_user,
+)
+from .db import (
     get_submissions as db_get_submissions,
 )
 from .models import (
     APILLMReq,
     CommentReq,
+    LeaderboardSubmitReq,
     NotificationActionReq,
     ProfileReq,
     QuotaReq,
@@ -1247,4 +1250,30 @@ async def handle_notifications(
         raise HTTPException(status_code=400, detail="Invalid action")
 
     await save_user(user)
+    return {"ok": True}
+
+
+@router.post("/api/leaderboard")
+async def leaderboard_submit(req: LeaderboardSubmitReq):
+    with open(os.path.dirname(__file__) + "/static/leaderboard_submission.schema.json", "r") as f:
+        schema = json.load(f)
+    
+    try:
+        jsonschema.validate(instance=req.submission, schema=schema)
+    except jsonschema.ValidationError as e:
+        raise HTTPException(status_code=400, detail=f"Schema validation failed: {e.message}")
+
+    # TODO: verification
+    
+    info = {
+        "model_size": req.model_size,
+        "model_release": req.model_release,
+        "model_description": req.model_description,
+        "institution": req.institution,
+        "submitter_email": req.submitter_email,
+        "split": req.split
+    }
+    
+    await create_leaderboard_entry(req.submission, info)
+    
     return {"ok": True}

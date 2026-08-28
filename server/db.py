@@ -23,7 +23,7 @@ def _open_cache_db():
     return aiosqlite.connect(DB_CACHE_PATH, timeout=15.0)
 
 
-_TABLES = {"users", "submissions"}
+_TABLES = {"users", "submissions", "leaderboard"}
 
 
 
@@ -158,6 +158,21 @@ async def get_latest_sent_email_date(to_email: str, subject: str) -> str | None:
         return row[0] if row and row[0] else None
 
 
+# --- Leaderboard ---
+
+async def create_leaderboard_entry(submissions: list, info: dict) -> int:
+    async with _open_db() as db:
+        await db.execute("BEGIN EXCLUSIVE")
+        cur = await db.execute(
+            "INSERT INTO leaderboard (submissions, info) VALUES (?, ?)",
+            (json.dumps(submissions), json.dumps(info))
+        )
+        new_id = cur.lastrowid
+        await db.commit()
+        assert new_id is not None, "Failed to save the leaderboard entry."
+        return new_id
+
+
 # --- Init ---
 
 
@@ -181,6 +196,9 @@ async def init_db() -> None:
         )
         await db.execute(
             "CREATE TABLE IF NOT EXISTS sent_emails (to_email TEXT NOT NULL, subject TEXT NOT NULL, body TEXT NOT NULL, date TEXT NOT NULL)"
+        )
+        await db.execute(
+            "CREATE TABLE IF NOT EXISTS leaderboard (id INTEGER PRIMARY KEY AUTOINCREMENT, submissions TEXT NOT NULL, info TEXT NOT NULL)"
         )
         await db.commit()
 
