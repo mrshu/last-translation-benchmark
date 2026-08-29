@@ -5,6 +5,7 @@ import json
 import os
 import collections
 import fastchrf
+import statistics
 import numpy as np
 
 os.chdir(os.path.dirname(__file__)+"/..")
@@ -18,11 +19,36 @@ with open("data/submissions.json", "r") as f:
 with open("data/lang2iso.json", "r") as f:
     lang2iso = json.load(f)
 
+
+def _models_are_bad(sub):
+    # passing at most half of the models
+    # pass if at least one verifier is satisfied
+    subs = [x for x in sub["translations"] if x["model"] != "human"]
+    verified = [
+        any(all(vl) for vl in mt_obj.get("verified_extra", {}).values() if all(v is not None for v in vl))
+        for mt_obj in subs
+    ]
+    return statistics.mean(verified) <= 0.5
+
+def _human_is_ok(sub):
+    obj = next((x for x in sub["translations"] if x["model"] == "human"), None)
+    # we should always have human
+    if obj is None:
+        return False
+
+    verified = obj.get("verified_extra", {})
+    verified = [all(vl) for vl in verified.values() if all(v is not None for v in vl)]
+    if not verified:
+        return False
+    return statistics.mean(verified) >= 0.75
+
+
 submissions = [
     s for s in submissions
     # take accepted examples before September 1, 2026
     if s["status"] == "accept"
     and datetime.datetime.strptime(s["created_at"].split(" ")[0], "%Y-%m-%d").astimezone(datetime.UTC) < datetime.datetime(2026, 9, 1, tzinfo=datetime.UTC)
+    and _models_are_bad(s) and _human_is_ok(s)
 ]
 
 for submission in submissions:

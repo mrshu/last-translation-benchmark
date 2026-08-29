@@ -5,11 +5,13 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)) + "/..")
 
 MODEL = "Google Translate"
 
-with open("data/submissions.json", "r") as f:
+with open("data/v1.json", "r") as f:
     data = json.load(f)
 
 out = []
 for s in data:
+    if "LTBv1-micro" not in s["tags"]:
+        continue
     t_val = None
     for t in s["translations"]:
         if t["model"] == MODEL:

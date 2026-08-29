@@ -104,14 +104,6 @@ async def main():
         # skip items that have source media for now
         if sub["source_media"]:
             return False
-        
-        # skip if more than 3 rules
-        # if len(sub["verification_rules"]) > 3:
-        #     continue
-
-        # take 50% of submissions randomly for now
-        # if 1.0 < random.Random(sub["id"]).random():
-        #     continue
 
         if not sub["source_text"] and sub["source_media"]:
             source_text_display = "(attached)"

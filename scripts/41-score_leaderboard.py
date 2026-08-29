@@ -39,7 +39,7 @@ def get_prompt_verify(source_text: str, translation: str, rule: str, source_medi
     return prompt
 
 async def main():
-    for sub_obj_lb in tqdm.tqdm(lb_subs[:20]):
+    for sub_obj_lb in tqdm.tqdm(lb_subs):
         sub_obj = id_to_submission.get(sub_obj_lb["id"])
         if not sub_obj or not sub_obj_lb["translation"]:
             sub_obj_lb["verification"] = None
@@ -59,18 +59,22 @@ async def main():
                 if res_text is None:
                     rule_results.append(False)
                     continue
-                    
-                text_clean = res_text.strip().lower().strip(" \t\n\r.,!?\"'*").split()[-1] if res_text.strip().lower().strip(" \t\n\r.,!?\"'*") else ""
-                if "pass" in text_clean:
-                    rule_results.append(True)
-                elif "fail" in text_clean:
-                    rule_results.append(False)
-                elif "pass" in res_text.lower():
-                    rule_results.append(True)
-                elif "fail" in res_text.lower():
-                    rule_results.append(False)
-                else:
-                    rule_results.append(False)
+
+                try:
+                    text_clean = res_text.strip().lower().strip(" \t\n\r.,!?\"'*").split()[-1]
+                    if "pass" in text_clean:
+                        rule_results.append(True)
+                    elif "fail" in text_clean:
+                        rule_results.append(False)
+                    elif "pass" in res_text.lower():
+                        rule_results.append(True)
+                    elif "fail" in res_text.lower():
+                        rule_results.append(False)
+                    else:
+                        rule_results.append(False)
+                except Exception as e:
+                    print(f"Error processing response for submission {sub_obj_lb['id']}, rule '{rule}': {e}")
+                    rule_results.append(None)
             else:
                 rule_results.append(False)
 
