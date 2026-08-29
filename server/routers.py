@@ -1272,7 +1272,29 @@ async def leaderboard_submit(req: LeaderboardSubmitReq):
     except jsonschema.ValidationError as e:
         raise HTTPException(status_code=400, detail=f"Schema validation failed: {e.message}")
 
-    # TODO: verification, read v1
+    if not os.path.exists("data/v1.json"):
+        raise HTTPException(status_code=500, detail="Leaderboard data not found")
+    with open("data/v1.json", "r") as f:
+        leaderboard_data = json.load(f)
+
+    id_to_mt = {sub["id"]: sub for sub in req.submission}
+    for subset in ["LTBv1", "LTBv1-textonly", "LTBv1-micro"]:
+        required = {
+            sub["id"]
+            for sub in leaderboard_data
+            if subset in sub["tags"]
+        }
+        # verify that all translations exist for the subset
+        if all(
+            id_to_mt.get(sub_id) is not None and id_to_mt[sub_id]["translation"] is not None
+            for sub_id in required
+        ):
+            break
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="The submission does not have translations for any of the subsets (LTBv1, LTBv1-textonly, or LTBv1-micro). Please check the submission and try again."
+        )
     
     info = {
         "model_name": req.model_name,
