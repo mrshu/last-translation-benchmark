@@ -1272,7 +1272,7 @@ async def leaderboard_submit(req: LeaderboardSubmitReq):
     except jsonschema.ValidationError as e:
         raise HTTPException(status_code=400, detail=f"Schema validation failed: {e.message}")
 
-    # TODO: verification
+    # TODO: verification, read v1
     
     info = {
         "model_name": req.model_name,

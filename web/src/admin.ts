@@ -247,7 +247,6 @@ function applyFilter(): void {
     const submitted = submittedStr ? parseInt(submittedStr, 10) : -1;
     const accepted = acceptedStr ? parseInt(acceptedStr, 10) : -1;
 
-    console.log(submitted, accepted);
     const filtered = allUsers.filter(u => {
         let highestRole = '';
         if (u.roles.includes('admin')) highestRole = 'admin';
